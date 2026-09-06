@@ -21,6 +21,10 @@ header{background:#1F4E79;color:#fff;padding:14px 16px;font-size:16px;font-weigh
 .ok{background:#E8F5E9;color:#2E7D32}
 .ng{background:#eee;color:#777}
 button{border:0;border-radius:8px;font-size:14px;font-weight:bold;padding:10px 14px}
+.tab{background:#e6ecf2;color:#3b6e9e;font-size:13px;padding:8px 10px}
+.tab.on{background:#3b6e9e;color:#fff}
+.vw{display:none}
+.vw.on{display:block}
 .join{background:#1F4E79;color:#fff;width:100%;margin-top:8px}
 .cancel{background:none;color:#C0392B;font-size:12px;padding:6px 0;text-decoration:underline}
 .mapbtn{display:inline-block;margin-top:8px;font-size:13px;color:#1F4E79;text-decoration:underline}
@@ -129,13 +133,21 @@ a.sheet{font-size:13px;color:#1F4E79}
 </div>
 
 <div id="admin_ui">
-  <div class="hint" style="display:flex;flex-wrap:wrap;gap:6px 12px;margin:6px 0 10px">
-    <a href="#sec_todo">📌 要対応</a><a href="#sec_event">🎪 イベント</a><a href="#sec_cases">📋 候補者</a><a href="#sec_members">👥 会員</a><a href="#sec_stats">📊 状況・KPI</a><a href="#sec_texts">✍️ 文面・設定</a>
+  <div id="tabs" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px">
+    <button type="button" class="tab" data-v="todo" onclick="showView('todo')">📌 要対応<span id="nav_todo"></span></button>
+    <button type="button" class="tab" data-v="cases" onclick="showView('cases')">📋 候補者</button>
+    <button type="button" class="tab" data-v="event" onclick="showView('event')">🎪 イベント</button>
+    <button type="button" class="tab" data-v="members" onclick="showView('members')">👥 会員</button>
+    <button type="button" class="tab" data-v="stats" onclick="showView('stats')">📊 状況・KPI</button>
+    <button type="button" class="tab" data-v="texts" onclick="showView('texts')">✍️ 文面・設定</button>
   </div>
-  <h2 id="sec_todo">📌 要対応（入会希望・面談）</h2>
-  <div class="hint">期限が今日か過ぎている人が上。「私が対応します」で担当になり、本人へ即応の一言が届きます（続きはLINE公式のチャットで）</div>
+  <section class="vw" data-v="todo">
+  <h2 id="sec_todo">📌 要対応 <span id="todo_count" class="hint" style="font-weight:normal"></span></h2>
+  <div class="hint">今日やること。期限が今日か過ぎている人が上。「私が対応します」で担当になり本人へ即応の一言が届く。中身や段階の更新は「詳細」で</div>
   <div id="a_cases"></div>
-
+  <details id="todo_future" style="display:none"><summary style="padding:6px 0" id="todo_future_sum">予定</summary><div id="a_cases_future"></div></details>
+  </section>
+  <section class="vw" data-v="event">
   <h2 id="sec_event">🎪 イベント登録・配信</h2>
   <div class="panel">
     <div class="t">イベント登録・配信</div>
@@ -214,34 +226,58 @@ a.sheet{font-size:13px;color:#1F4E79}
       <button id="a_send" onclick="adminMessage()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">申込者に送信する</button>
     </div>
   </div>
+  </section>
+  <section class="vw" data-v="cases">
+  <h2 id="sec_cases">📋 候補者一覧 <button type="button" onclick="openDetail('')" style="font-size:12px;padding:4px 8px;margin-left:8px">＋ 追加</button></h2>
+  <div class="hint">名簿。名前・会社・担当で検索、段階で絞り込み。行を押すと詳細（見る・更新する）</div>
+  <div style="display:flex;gap:6px;margin-bottom:8px"><input id="a_q" placeholder="名前・会社・担当で検索" oninput="renderAll()" style="flex:2"><select id="a_stage" onchange="renderAll()" style="flex:1"><option value="">全段階</option></select></div>
+  <div id="a_all"></div>
 
-  <h2 id="sec_cases">📋 候補者一覧</h2>
-  <div class="hint">名前・会社で検索。段階ごとにたたんであります。カードから担当・段階・メモ・再連絡日・属性を更新できます（スプレッドシートを開かなくてよい）</div>
-  <details style="margin-bottom:8px"><summary style="font-weight:bold;padding:6px 0">＋ 候補者を追加（イベントなしで会った人・紹介された人）</summary>
-    <div class="sub">
+  <div id="case_detail" style="display:none;position:fixed;inset:0;background:#fff;overflow:auto;z-index:50;padding:12px 14px 40px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div id="cd_title" style="font-weight:bold;font-size:16px"></div><button type="button" onclick="closeDetail()" style="font-size:12px;padding:6px 10px">閉じる</button></div>
+    <div id="cd_info" class="hist" style="margin-top:8px"></div>
+    <div class="sub" id="cd_update">
+      <div class="t" style="font-size:14px">更新</div>
+      <label>段階</label><select id="cd_status"></select>
+      <label>担当</label><select id="cd_tanto"><option value="">（担当なし）</option></select>
+      <label>次にやること（空にすると要対応から外れる）</label><input id="cd_next" list="next_presets" placeholder="例: 面談の日程調整">
+      <datalist id="next_presets"><option value="入会希望フォロー（当日中に1:1で返信）"><option value="1:1で返信（本文は人が書く）"><option value="面談の日程調整"><option value="例会・交流会に誘う"><option value="申請書類の案内"><option value="再連絡（本人と約束した時期）"><option value="御礼の連絡"></datalist>
+      <label>期限</label><input id="cd_due" type="date">
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button type="button" onclick="saveDetail()" style="background:#3b6e9e;color:#fff;flex:2">保存</button>
+        <button type="button" onclick="detailOp('assign')" class="b_att" style="flex:1">私が対応します</button>
+        <button type="button" onclick="detailOp('done')" style="flex:1">対応済み</button>
+      </div>
+      <label>メモを追記</label><div style="display:flex;gap:6px"><input id="cd_memo" placeholder="所感・次の一手・約束した時期など" style="flex:1"><button type="button" onclick="addMemoDetail()">追記</button></div>
+    </div>
+    <div class="sub" id="cd_new" style="display:none">
+      <div class="t" style="font-size:14px">候補者を追加（イベントなしで会った人・紹介された人）</div>
       <label>氏名 ※必須</label><input id="n_name">
       <label>会社名・屋号</label><input id="n_company">
       <label>業種</label><select id="n_gyoshu"><option value="">（選択）</option></select>
       <label>きっかけ</label><select id="n_kikkake"><option value="">（選択）</option></select>
       <label>紹介者</label><input id="n_shokai" list="member_names">
-      <label>メモ（どこで会ったか・印象など）</label><input id="n_memo">
-      <label>次アクション（任意。入れると要対応に載り、期限は今日）</label><input id="n_next" placeholder="例: 次回例会に誘う">
+      <label>メモ</label><input id="n_memo">
+      <label>次にやること（任意。入れると要対応に載る）</label><input id="n_next" list="next_presets">
       <label style="font-weight:normal"><input type="checkbox" id="n_self" checked style="width:auto"> 自分を担当にする</label>
       <button type="button" onclick="adminAddCase(false)" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">候補者を追加する</button>
     </div>
-  </details>
-  <div id="attr_box" class="sub" style="display:none">
-    <div class="t" style="font-size:14px">属性を編集: <span id="attr_name"></span></div>
-    <label>業種</label><select id="at_gyoshu"><option value="">（選択）</option></select>
-    <label>役職</label><input id="at_yakushoku">
-    <label>年齢帯</label><select id="at_nenrei"><option value="">（選択）</option></select>
-    <label>エリア</label><input id="at_area" placeholder="例: 沼津市">
-    <label>関心</label><select id="at_kanshin"><option value="">（選択）</option></select>
-    <div style="display:flex;gap:8px;margin-top:8px"><button type="button" onclick="saveAttrs()" style="background:#3b6e9e;color:#fff;flex:1">保存</button><button type="button" onclick="$('attr_box').style.display='none'" style="flex:1">閉じる</button></div>
+    <details id="cd_other" style="margin-top:10px"><summary style="font-weight:bold;padding:6px 0">その他（氏名・属性・会員化・引継ぎ・統合・削除）</summary>
+      <div class="sub">
+        <label>氏名</label><input id="cd_name">
+        <label>会社名・屋号</label><input id="cd_company">
+        <label>業種</label><select id="at_gyoshu"><option value="">（選択）</option></select>
+        <label>役職</label><input id="at_yakushoku">
+        <label>年齢帯</label><select id="at_nenrei"><option value="">（選択）</option></select>
+        <label>エリア</label><input id="at_area" placeholder="例: 沼津市">
+        <label>関心</label><select id="at_kanshin"><option value="">（選択）</option></select>
+        <button type="button" onclick="saveOther()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">氏名・属性を保存</button>
+        <div class="apl" id="cd_actions" style="margin-top:10px"></div>
+      </div>
+    </details>
   </div>
-  <input id="a_q" placeholder="名前・会社・担当で検索" oninput="renderAll()" style="margin-bottom:8px">
-  <div id="a_all"></div>
-
+  </section>
+  <section class="vw" data-v="members">
   <h2 id="sec_members">👥 会員</h2>
   <div class="hint">会員は候補者リストに載らず、友だち数の分母からも除きます。会員登録の合言葉はトークで「会員合言葉」と送ると出ます</div>
   <div id="a_members"></div>
@@ -250,7 +286,8 @@ a.sheet{font-size:13px;color:#1F4E79}
     <textarea id="a_mmsg" rows="3" placeholder="例: 10月の交流会に、お知り合いをぜひお誘いください。紹介文の転送は会員メニューから"></textarea>
     <button type="button" onclick="adminMemberMessage()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">会員全員に送る</button>
   </div>
-
+  </section>
+  <section class="vw" data-v="stats">
   <h2 id="sec_stats">📊 状況 <button type="button" onclick="refreshAdmin()" style="font-size:12px;padding:4px 8px;margin-left:8px">最新に更新</button></h2>
   <div class="hint">シートを直接直した直後は、表示が最大10分古いことがあります。「最新に更新」でその場で取り直します</div>
   <div id="a_stats" class="hist"></div>
@@ -262,7 +299,8 @@ a.sheet{font-size:13px;color:#1F4E79}
     <div style="display:flex;gap:8px"><input id="k_target" type="number" min="0" style="flex:1"><button type="button" onclick="saveKpi()" style="background:#3b6e9e;color:#fff">設定</button></div>
   </div>
   <div id="a_kpi" class="hist"></div>
-
+  </section>
+  <section class="vw" data-v="texts">
   <h2 id="sec_texts">✍️ 文面（自動応答・定型文）</h2>
   <div class="hint">「自動応答する」の文面は、その言葉が送られてきたときに返します。それ以外は各場面で使う文面の置き場です。差し込み: {name}（相手の名前）{event} {date} {time} {place} {fee} {map} {liff}（申込ページ）{admin}（担当名）{info}（日時と場所）。「項目: 」だけになった行は自動で消えます</div>
   <div id="a_texts"></div>
@@ -295,6 +333,8 @@ a.sheet{font-size:13px;color:#1F4E79}
   </div>
 
   <div><a id="a_sheet" class="sheet" target="_blank" rel="noopener">▶ スプレッドシートを開く（集計・月次・削除など）</a></div>
+  </section>
+
 </div>
 <div id="dbg" style="font-size:10px;color:#999;margin-top:20px;word-break:break-all"></div>
 </div>
@@ -732,94 +772,152 @@ function copyText(text){
   else fallback();
 }
 
-// ---- 候補者カード（要対応・一覧で共通） ----
-function caseCard(c){
+// ---- 画面の切替（メニューの各ボタンは別々の画面として開く。タブで行き来できる） ----
+var VIEW_CUR = "";
+function showView(v){
+  VIEW_CUR = v;
+  var secs = document.querySelectorAll("#admin_ui section.vw");
+  for (var i = 0; i < secs.length; i++) secs[i].classList.toggle("on", secs[i].getAttribute("data-v") === v);
+  var tabs = document.querySelectorAll("#tabs .tab");
+  for (var j = 0; j < tabs.length; j++) tabs[j].classList.toggle("on", tabs[j].getAttribute("data-v") === v);
+  window.scrollTo({ top: 0 });
+}
+
+// ---- 要対応（今日やること・最小カード） ----
+function todoCard(c){
   var card = el("div", "card");
-  var head = el("div", "", c.name + (c.company ? "（" + c.company + "）" : "") + " ・ " + c.status + (c.id ? "　" + c.id : "")); head.style.fontWeight = "bold";
-  card.appendChild(head);
   var due = c.overdue === null || c.overdue === undefined ? "" : (c.overdue > 0 ? "（" + c.overdue + "日超過）" : c.overdue === 0 ? "（今日）" : "（期限 " + c.due + "）");
-  card.appendChild(el("small", "", "担当: " + (c.tanto || "なし") + (c.next ? " ／ 次: " + c.next + due : " ／ 次アクションなし") + (c.hasLine ? "" : " ／ LINE未紐付")));
-  if (c.handoff) card.appendChild(el("small", "", "🎉 入会後の手順 " + c.handoff.step + "/" + c.handoff.total + "（「対応済み」で次へ）"));
-  if (c.partAfter !== null && c.partAfter !== undefined) card.appendChild(el("small", "", "入会後のイベント参加 " + c.partAfter + "回"));
-  var attrs = [c.gyoshu, c.yakushoku, c.nenrei, c.area, c.kanshin].filter(String).join("・");
-  if (attrs) card.appendChild(el("small", "", attrs));
-  if (c.kikkake || c.shokai) card.appendChild(el("small", "", (c.kikkake ? "きっかけ: " + c.kikkake : "") + (c.shokai ? "　紹介: " + c.shokai + "（原則その方が対応）" : "")));
-  var hist = [];
-  if (c.created) hist.push("登録 " + c.created);
-  if (c.updated) hist.push("更新 " + c.updated + (c.stale > 30 ? "（" + c.stale + "日前）" : ""));
-  if (c.events && c.events.length) hist.push("イベント: " + c.events.join("、"));
-  if (hist.length) card.appendChild(el("small", "", hist.join(" ／ ")));
-  if (c.memo){
-    if (c.memoFull && c.memoFull.length > c.memo.length){
-      var md = document.createElement("details"); var ms = document.createElement("summary"); ms.textContent = "メモ: " + c.memo; ms.style.fontSize = "12px"; ms.style.color = "#555";
-      md.appendChild(ms); var full = el("small", "", c.memoFull); full.style.whiteSpace = "pre-wrap"; md.appendChild(full); card.appendChild(md);
-    } else card.appendChild(el("small", "", "メモ: " + c.memo));
-  }
+  var head = el("div", "", c.name + (c.company ? "（" + c.company + "）" : "")); head.style.fontWeight = "bold"; card.appendChild(head);
+  card.appendChild(el("small", "", "次: " + c.next + due + " ／ 担当: " + (c.tanto || "なし") + (c.hasLine ? "" : " ／ LINE未紐付")));
+  if (c.handoff) card.appendChild(el("small", "", "🎉 入会後の手順 " + c.handoff.step + "/" + c.handoff.total));
   var row = el("div", "apl");
-  var add = function(parent, label, cls, fn){ var b = el("button", cls, label); b.onclick = fn; parent.appendChild(b); };
-  if (c.tanto !== myName()) add(row, "私が対応します", "b_att", function(){ caseOp(c.id, "assign", ""); });
-  if (c.next) add(row, "対応済み", "b_clr", function(){ if (confirm("次アクションを消して要対応から外しますか？")) caseOp(c.id, "done", ""); });
-  add(row, "メモ", "", function(){ var t = prompt("メモを追記（所感・次の一手・約束した時期など）"); if (t && t.trim()) caseOp(c.id, "memo", t.trim()); });
+  var add = function(label, cls, fn){ var b = el("button", cls, label); b.onclick = fn; row.appendChild(b); };
+  if (c.tanto !== myName()) add("私が対応します", "b_att", function(){ caseOp(c.id, "assign", ""); });
+  add("対応済み", "b_clr", function(){ if (confirm("「" + c.next + "」を済みにしますか？")) caseOp(c.id, "done", ""); });
+  add("詳細", "", function(){ openDetail(c.id); });
   card.appendChild(row);
-  var more = document.createElement("details"); var sm = document.createElement("summary"); sm.textContent = "その他の操作"; sm.style.fontSize = "12px"; sm.style.color = "#3b6e9e"; sm.style.padding = "4px 0";
-  more.appendChild(sm);
-  var row2 = el("div", "apl");
-  add(row2, "面談済み", "", function(){ if (confirm(c.name + " を「4 面談済み」にしますか？")) caseOp(c.id, "status", "4 面談済み"); });
-  add(row2, "入会意向あり", "", function(){ if (confirm(c.name + " を「5 入会意向あり」にしますか？")) caseOp(c.id, "status", "5 入会意向あり"); });
-  add(row2, "入会", "", function(){ if (confirm(c.name + " を「7 入会」にしますか？")) caseOp(c.id, "status", "7 入会"); });
-  add(row2, "辞退", "b_abs", function(){ if (confirm(c.name + " を「辞退・対象外」にしますか？（追撃はしません）")) caseOp(c.id, "status", "辞退・対象外"); });
-  add(row2, "段階を選ぶ", "", function(){ pickStatus(c); });
-  add(row2, "担当を変更", "", function(){ pickTanto(c); });
-  add(row2, "再連絡日", "", function(){ var d = prompt("再連絡する日（例 2027-01-10）。その日の朝に通知されます"); if (!d) return; if (!/^\d{4}-\d{2}-\d{2}$/.test(d.trim())){ alert("2027-01-10 の形式で入れてください"); return; } caseOp(c.id, "snooze", d.trim()); });
-  add(row2, "氏名・会社を修正", "", function(){ var n = prompt("氏名", c.name); if (n === null) return; var co = prompt("会社名・屋号", c.company || ""); if (co === null) return; caseOp(c.id, "rename", JSON.stringify({ name: n.trim(), company: co.trim() })); });
-  add(row2, "属性を編集", "", function(){ openAttrs(c); });
-  if (/^[567] /.test(c.status)) add(row2, "引継ぎ文をコピー", "", function(){ copyText(handoffText(c)); });
-  if (/^7 /.test(c.status)) add(row2, "総務へ送る", "b_att", function(){ if (confirm("総務担当に引継ぎ文をLINEで送ります。よろしいですか？")) { say("送信中…"); api("liff_admin_handoff", { id: c.id }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); }); } });
-  if (c.hasLine) add(row2, "会員にする", "b_att", function(){ if (confirm(c.name + " を会員にしますか？（段階は「7 入会」、メニューが会員用に切り替わります。候補者リストには残ります）")) caseOp(c.id, "to_member", ""); });
-  add(row2, "統合", "", function(){ var t = prompt("残す側の番号（例 C-003）。この人（" + c.id + "）は「辞退・対象外」になり、空欄の情報は残す側に寄せます"); if (!t) return; if (confirm(c.id + " を " + t.trim() + " に統合しますか？")) caseOp(c.id, "merge", t.trim()); });
-  if (/^1 /.test(c.status) && !(c.events && c.events.length)) add(row2, "削除（誤登録）", "b_abs", function(){ if (confirm(c.name + " を削除します。よろしいですか？") && confirm("本当に削除しますか？（元に戻せません）")) caseOp(c.id, "delete", ""); });
-  more.appendChild(row2);
-  card.appendChild(more);
   return card;
 }
-
-function pickList(title, list, cur){
-  var lines = list.map(function(v, i){ return (i + 1) + ": " + v; });
-  var a = prompt(title + "\n番号で選んでください\n" + lines.join("\n"), cur ? String(list.indexOf(cur) + 1) : "");
-  if (a === null) return null;
-  var n = Number(String(a).trim());
-  if (!(n >= 1 && n <= list.length)){ alert("番号で入力してください"); return null; }
-  return list[n - 1];
-}
-function pickStatus(c){
-  var v = pickList("段階を選ぶ（" + c.name + "）", STATE.statusList || [], c.status);
-  if (v && v !== c.status) caseOp(c.id, "status", v);
-}
-function pickTanto(c){
-  var names = (STATE.admins || []).map(function(a){ return a.name; });
-  var v = pickList("担当を選ぶ（" + c.name + "）。0 で担当なし", ["（担当なし）"].concat(names), c.tanto);
-  if (v === null) return;
-  caseOp(c.id, "tanto", v === "（担当なし）" ? "" : v);
+function renderCases(st){
+  var box = $("a_cases"), fbox = $("a_cases_future"); if (!box) return; box.innerHTML = ""; fbox.innerHTML = "";
+  var list = st.cases || [];
+  var now = list.filter(function(c){ return c.overdue === null || c.overdue === undefined || c.overdue >= 0; });
+  var later = list.filter(function(c){ return !(c.overdue === null || c.overdue === undefined || c.overdue >= 0); });
+  $("todo_count").textContent = now.length ? "（" + now.length + "件）" : "";
+  var nav = $("nav_todo"); if (nav) nav.textContent = now.length ? "（" + now.length + "）" : "";
+  if (!now.length) box.appendChild(el("div", "hint", "今日やることはありません"));
+  now.forEach(function(c){ box.appendChild(todoCard(c)); });
+  $("todo_future").style.display = later.length ? "block" : "none";
+  $("todo_future_sum").textContent = "予定 " + later.length + "件（期限が先）";
+  later.forEach(function(c){ fbox.appendChild(todoCard(c)); });
 }
 
-var ATTR_ID = "";
-function openAttrs(c){
-  ATTR_ID = c.id;
-  $("attr_name").textContent = c.name;
+// ---- 候補者一覧（名簿・1行） ----
+function renderAll(){
+  var box = $("a_all"); if (!box || !STATE) return; box.innerHTML = "";
+  var sel = $("a_stage");
+  if (sel.options.length <= 1) (STATE.statusList || []).forEach(function(v){ var o = document.createElement("option"); o.value = v; o.textContent = v; sel.appendChild(o); });
+  var q = ($("a_q").value || "").trim().toLowerCase(), stage = sel.value;
+  var list = (STATE.all || []).filter(function(c){
+    if (stage && c.status !== stage) return false;
+    if (!q) return true;
+    return [c.name, c.company, c.tanto, c.gyoshu, c.kikkake, c.shokai].join(" ").toLowerCase().indexOf(q) >= 0;
+  });
+  if (!list.length){ box.appendChild(el("div", "hint", q ? "該当なし（未登録なら「＋ 追加」）" : "まだ候補者がいません")); return; }
+  list.slice(0, 200).forEach(function(c){
+    var row = el("div", "apl"); row.style.cursor = "pointer"; row.onclick = function(){ openDetail(c.id); };
+    var nm = el("div", "nm", c.name + (c.company ? "（" + c.company + "）" : ""));
+    nm.appendChild(el("small", "", c.status + " ／ 担当 " + (c.tanto || "なし") + (c.next ? " ／ 次: " + c.next : "") + (c.updated ? " ／ 更新 " + c.updated : "")));
+    row.appendChild(nm);
+    row.appendChild(el("span", "", "›"));
+    box.appendChild(row);
+  });
+  if (list.length > 200) box.appendChild(el("div", "hint", "200件まで表示。検索で絞ってください"));
+}
+
+// ---- 候補者の詳細（1人について見る・更新する） ----
+var DETAIL_ID = null;
+function caseById(id){ return (STATE && STATE.all || []).filter(function(c){ return String(c.id) === String(id); })[0]; }
+function openDetail(id){
+  DETAIL_ID = id || "";
+  var isNew = !id;
+  $("cd_update").style.display = isNew ? "none" : "block";
+  $("cd_other").style.display = isNew ? "none" : "block";
+  $("cd_new").style.display = isNew ? "block" : "none";
+  $("cd_info").innerHTML = "";
+  if (isNew){
+    $("cd_title").textContent = "候補者を追加";
+    fillSelect("n_gyoshu", STATE.gyoshuList || [], ""); fillSelect("n_kikkake", STATE.keiroList || [], "");
+  } else {
+    fillDetail(id);
+  }
+  $("case_detail").style.display = "block";
+  window.scrollTo({ top: 0 });
+}
+function closeDetail(){ DETAIL_ID = null; $("case_detail").style.display = "none"; }
+function fillDetail(id){
+  var c = caseById(id); if (!c){ closeDetail(); return; }
+  $("cd_title").textContent = c.name + (c.company ? "（" + c.company + "）" : "") + "　" + c.id;
+  var info = $("cd_info"); info.innerHTML = "";
+  var line = function(t){ info.appendChild(el("div", "", t)); };
+  line("段階: " + c.status + " ／ 担当: " + (c.tanto || "なし") + (c.hasLine ? " ／ LINE紐付あり" : " ／ LINE未紐付"));
+  var attrs = [c.gyoshu, c.yakushoku, c.nenrei, c.area, c.kanshin].filter(String).join("・"); if (attrs) line("属性: " + attrs);
+  if (c.contact) line("連絡先: " + c.contact);
+  if (c.kikkake || c.shokai) line("きっかけ: " + (c.kikkake || "-") + (c.shokai ? " ／ 紹介: " + c.shokai : ""));
+  var hist = []; if (c.created) hist.push("登録 " + c.created); if (c.updated) hist.push("更新 " + c.updated + (c.stale > 30 ? "（" + c.stale + "日前）" : "")); if (c.events && c.events.length) hist.push("イベント: " + c.events.join("、"));
+  if (hist.length) line(hist.join(" ／ "));
+  if (c.handoff) line("🎉 入会後の手順 " + c.handoff.step + "/" + c.handoff.total + "（「対応済み」で次へ）");
+  if (c.partAfter !== null && c.partAfter !== undefined) line("入会後のイベント参加 " + c.partAfter + "回");
+  if (c.memoFull || c.memo){ var m = el("div", "", "メモ: " + (c.memoFull || c.memo)); m.style.whiteSpace = "pre-wrap"; info.appendChild(m); }
+  // 更新フォーム
+  var ss = $("cd_status"); ss.innerHTML = ""; (STATE.statusList || []).forEach(function(v){ var o = document.createElement("option"); o.value = v; o.textContent = v; ss.appendChild(o); }); ss.value = c.status;
+  var ts = $("cd_tanto"); ts.innerHTML = "<option value=''>（担当なし）</option>"; var names = (STATE.admins || []).map(function(a){ return a.name; }); if (c.tanto && names.indexOf(c.tanto) < 0) names.unshift(c.tanto); names.forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = n; ts.appendChild(o); }); ts.value = c.tanto || "";
+  $("cd_next").value = c.next || ""; $("cd_due").value = c.dueYmd || ""; $("cd_memo").value = "";
+  // その他
+  $("cd_name").value = c.name; $("cd_company").value = c.company || "";
   fillSelect("at_gyoshu", STATE.gyoshuList || [], ""); $("at_gyoshu").value = c.gyoshu || "";
   fillSelect("at_nenrei", STATE.nenreiList || [], ""); $("at_nenrei").value = c.nenrei || "";
   fillSelect("at_kanshin", STATE.kanshinList || [], ""); $("at_kanshin").value = c.kanshin || "";
   $("at_yakushoku").value = c.yakushoku || ""; $("at_area").value = c.area || "";
-  $("attr_box").style.display = "block";
-  $("attr_box").scrollIntoView({ behavior: "smooth", block: "start" });
+  var acts = $("cd_actions"); acts.innerHTML = "";
+  var add = function(label, cls, fn){ var b = el("button", cls, label); b.onclick = fn; acts.appendChild(b); };
+  if (c.hasLine && !/^7 /.test(c.status)) add("会員にする", "b_att", function(){ if (confirm(c.name + " を会員にしますか？（段階は「7 入会」、メニューが会員用に切り替わります）")) caseOp(c.id, "to_member", ""); });
+  if (/^[567] /.test(c.status)) add("引継ぎ文をコピー", "", function(){ copyText(handoffText(c)); });
+  if (/^7 /.test(c.status)) add("総務へ送る", "", function(){ if (confirm("総務担当に引継ぎ文をLINEで送ります。よろしいですか？")) { say("送信中…"); api("liff_admin_handoff", { id: c.id }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); }); } });
+  add("統合", "", function(){ var t = prompt("残す側の番号（例 C-003）。この人（" + c.id + "）は「辞退・対象外」になり、空欄の情報は残す側に寄せます"); if (!t) return; if (confirm(c.id + " を " + t.trim() + " に統合しますか？")) caseOp(c.id, "merge", t.trim()); });
+  if (/^1 /.test(c.status) && !(c.events && c.events.length)) add("削除（誤登録）", "b_abs", function(){ if (confirm(c.name + " を削除します。よろしいですか？") && confirm("本当に削除しますか？（元に戻せません）")) { closeDetail(); caseOp(c.id, "delete", ""); } });
 }
-function saveAttrs(){
-  if (!ATTR_ID) return;
-  var v = { gyoshu: $("at_gyoshu").value, yakushoku: $("at_yakushoku").value.trim(), nenrei: $("at_nenrei").value, area: $("at_area").value.trim(), kanshin: $("at_kanshin").value };
-  $("attr_box").style.display = "none";
-  caseOp(ATTR_ID, "attrs", JSON.stringify(v));
+function saveDetail(){
+  var c = caseById(DETAIL_ID); if (!c) return;
+  var up = {};
+  if ($("cd_status").value !== c.status) up.status = $("cd_status").value;
+  if ($("cd_tanto").value !== (c.tanto || "")) up.tanto = $("cd_tanto").value;
+  var nx = $("cd_next").value.trim(), due = $("cd_due").value;
+  if (nx !== (c.next || "") || due !== (c.dueYmd || "")) { up.next = nx; up.due = due; }
+  if (!Object.keys(up).length){ say("変更はありません"); return; }
+  if (up.status && /^辞退/.test(up.status) && !confirm(c.name + " を「辞退・対象外」にしますか？（追撃はしません）")) return;
+  caseOp(c.id, "update", JSON.stringify(up));
 }
-
+function detailOp(op){
+  var c = caseById(DETAIL_ID); if (!c) return;
+  if (op === "done" && !confirm("次にやることを済みにしますか？")) return;
+  caseOp(c.id, op, "");
+}
+function addMemoDetail(){
+  var c = caseById(DETAIL_ID); if (!c) return;
+  var t = $("cd_memo").value.trim(); if (!t){ alert("メモを入力してください"); return; }
+  caseOp(c.id, "memo", t);
+}
+function saveOther(){
+  var c = caseById(DETAIL_ID); if (!c) return;
+  var n = $("cd_name").value.trim(), co = $("cd_company").value.trim();
+  var at = { gyoshu: $("at_gyoshu").value, yakushoku: $("at_yakushoku").value.trim(), nenrei: $("at_nenrei").value, area: $("at_area").value.trim(), kanshin: $("at_kanshin").value };
+  var doAttrs = function(){ caseOp(c.id, "attrs", JSON.stringify(at)); };
+  if (n !== c.name || co !== (c.company || "")) {
+    say("更新中…");
+    api("liff_admin_case", { id: c.id, op: "rename", value: JSON.stringify({ name: n, company: co }) }).then(function(st){ renderAdmin(st); doAttrs(); }).catch(function(e){ say("エラー: " + e.message); });
+  } else doAttrs();
+}
 function adminAddCase(force){
   var d = { name: $("n_name").value.trim(), company: $("n_company").value.trim(), gyoshu: $("n_gyoshu").value, kikkake: $("n_kikkake").value,
             shokai: $("n_shokai").value.trim(), memo: $("n_memo").value.trim(), next: $("n_next").value.trim(), selfTanto: $("n_self").checked, force: !!force };
@@ -828,40 +926,10 @@ function adminAddCase(force){
   api("liff_admin_add_case", { data: d }).then(function(st){
     ["n_name","n_company","n_shokai","n_memo","n_next"].forEach(function(id){ $(id).value = ""; });
     $("n_gyoshu").value = ""; $("n_kikkake").value = "";
-    renderAdmin(st);
+    closeDetail(); renderAdmin(st);
   }).catch(function(e){
     if (!force && /同名の候補者がいます/.test(e.message)){ if (confirm(e.message + "\n\n別人として追加しますか？")) adminAddCase(true); else say(e.message); }
     else say("エラー: " + e.message);
-  });
-}
-
-// ---- 要対応（入会希望・面談の初動） ----
-function renderCases(st){
-  var box = $("a_cases"); if (!box) return; box.innerHTML = "";
-  var list = st.cases || [];
-  if (!list.length){ box.appendChild(el("div", "hint", "要対応の人はいません")); return; }
-  list.forEach(function(c){ box.appendChild(caseCard(c)); });
-}
-
-// ---- 候補者一覧（検索・段階ごと） ----
-function renderAll(){
-  var box = $("a_all"); if (!box || !STATE) return; box.innerHTML = "";
-  var q = ($("a_q").value || "").trim().toLowerCase();
-  var list = (STATE.all || []).filter(function(c){
-    if (!q) return true;
-    return [c.name, c.company, c.tanto, c.gyoshu, c.kikkake, c.shokai].join(" ").toLowerCase().indexOf(q) >= 0;
-  });
-  if (!list.length){ box.appendChild(el("div", "hint", q ? "該当なし（未登録の人なら「代理申込」か、入会希望を送ってもらうと登録されます）" : "まだ候補者がいません")); return; }
-  if (q){ list.forEach(function(c){ box.appendChild(caseCard(c)); }); return; }
-  var groups = {}; var order = [];
-  list.forEach(function(c){ var k = c.status || "（段階なし）"; if (!groups[k]){ groups[k] = []; order.push(k); } groups[k].push(c); });
-  order.sort();
-  order.forEach(function(k){
-    var d = document.createElement("details");
-    var sm = document.createElement("summary"); sm.textContent = k + "（" + groups[k].length + "人）"; sm.style.fontWeight = "bold"; sm.style.padding = "6px 0";
-    d.appendChild(sm);
-    groups[k].forEach(function(c){ d.appendChild(caseCard(c)); });
-    box.appendChild(d);
   });
 }
 function caseOp(id, op, value){
@@ -1128,16 +1196,15 @@ function renderAdmin(st){
   $("a_sheet").href = st.sheetUrl;
   renderCases(st);
   renderAll();
+  if (DETAIL_ID) fillDetail(DETAIL_ID);
   renderMembers(st);
   renderKpi(st);
   renderTexts(st);
   renderApplicants();
-  if (VIEW && !VIEW_DONE){
-    VIEW_DONE = true;
-    var sec = { cases: "sec_todo", kpi: "sec_stats", event: "sec_event", texts: "sec_texts", members: "sec_members" }[VIEW];
-    var tgt = sec ? $(sec) : null;
-    if (tgt) setTimeout(function(){ tgt.scrollIntoView({ behavior: "smooth", block: "start" }); }, 150);
+  if (!VIEW_CUR){
+    VIEW_CUR = { cases: "todo", kpi: "stats", event: "event", texts: "texts", members: "members", todo: "todo", stats: "stats" }[VIEW] || "todo";
   }
+  showView(VIEW_CUR);
   updatePreview();
   $("a_copywrap").style.display = $("a_ev").value ? "block" : "none";
 }
