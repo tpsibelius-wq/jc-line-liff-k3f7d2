@@ -56,6 +56,38 @@ a.sheet{font-size:13px;color:#1F4E79}
 .tag.cxl{background:#FFEBEE;color:#C62828}
 .tag.man{background:#FFF3E0;color:#E65100}
 .sub{border-top:1px dashed #ddd;margin-top:14px;padding-top:10px}
+/* ---- PC（幅900px以上）: 左に画面の切替、右に内容。イベントは2列、詳細は右の引き出し ---- */
+@media (min-width: 900px) {
+  body{font-size:15px}
+  #wrap{max-width:1180px;padding:16px 24px}
+  #admin_ui{display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:start}
+  #admin_ui #tabs{position:sticky;top:12px;flex-direction:column;gap:6px;margin:0}
+  #admin_ui #tabs .tab{text-align:left;padding:10px 12px;font-size:14px}
+  #admin_ui > section.vw{grid-column:2}
+  #admin_ui > section.vw.on{display:block}
+  #admin_ui > #dbg, #admin_ui > .hint{grid-column:1 / -1}
+  section[data-v="event"].on{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  section[data-v="event"] > h2{grid-column:1 / -1}
+  section[data-v="event"] > #apl_panel{margin-top:0}
+  section[data-v="stats"].on{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  section[data-v="stats"] > h2, section[data-v="stats"] > .hint{grid-column:1 / -1}
+  #case_detail{left:auto;width:560px;box-shadow:-4px 0 16px rgba(0,0,0,.15);border-left:1px solid #dde3ea}
+  .hint{font-size:12px}
+  .apl{font-size:14px}
+  .apl button{font-size:12px}
+  label{font-size:13px}
+  input,select,textarea{font-size:15px}
+  table.roster{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;font-size:14px}
+  table.roster th{background:#e6ecf2;color:#1F4E79;text-align:left;padding:8px 10px;cursor:pointer;white-space:nowrap;user-select:none}
+  table.roster td{padding:8px 10px;border-top:1px solid #eee;vertical-align:top}
+  table.roster tr.row:hover{background:#f3f6f9;cursor:pointer}
+}
+@media print {
+  header, #tabs, button, #msg, #dbg, .hint { display: none !important; }
+  #admin_ui{display:block}
+  .vw.on{display:block}
+  body{background:#fff}
+}
 </style>
 </head>
 <body>
@@ -505,7 +537,7 @@ function boot(){
   }
   liff.init({ liffId: LIFF_ID }).then(function(){
     TM.init = performance.now();
-    if (!liff.isLoggedIn()){ say("LINEログインへ移動します…"); liff.login(); return; }
+    if (!liff.isLoggedIn()){ say("LINEログインへ移動します…"); liff.login({ redirectUri: location.href }); return; }
     TOKEN = liff.getIDToken();
     if (!TOKEN){ say("本人確認トークンが取得できませんでした。開き直してください"); return; }
     READY_RESOLVE();
@@ -813,6 +845,7 @@ function renderAll(){
     return [c.name, c.company, c.tanto, c.gyoshu, c.kikkake, c.shokai].join(" ").toLowerCase().indexOf(q) >= 0;
   });
   if (!list.length){ box.appendChild(el("div", "hint", q ? "該当なし（未登録なら「＋ 追加」）" : "まだ候補者がいません")); return; }
+  if (window.innerWidth >= 900){ box.appendChild(rosterTable(list)); return; }
   list.slice(0, 200).forEach(function(c){
     var row = el("div", "apl"); row.style.cursor = "pointer"; row.onclick = function(){ openDetail(c.id); };
     var nm = el("div", "nm", c.name + (c.company ? "（" + c.company + "）" : ""));
@@ -822,6 +855,31 @@ function renderAll(){
     box.appendChild(row);
   });
   if (list.length > 200) box.appendChild(el("div", "hint", "200件まで表示。検索で絞ってください"));
+}
+
+// 広い画面向けの表（見出しを押すと並べ替え）
+var ROSTER_SORT = { key: "updatedTs", dir: -1 };
+function rosterTable(list){
+  var cols = [["name", "名前"], ["company", "会社"], ["status", "段階"], ["tanto", "担当"], ["next", "次にやること"], ["due", "期限"], ["updated", "更新"]];
+  var k = ROSTER_SORT.key, d = ROSTER_SORT.dir;
+  var sorted = list.slice().sort(function(a, b){ var x = a[k] == null ? "" : a[k], y = b[k] == null ? "" : b[k]; if (x < y) return -d; if (x > y) return d; return 0; });
+  var t = document.createElement("table"); t.className = "roster";
+  var thead = document.createElement("thead"), tr = document.createElement("tr");
+  cols.forEach(function(c){
+    var th = document.createElement("th"); th.textContent = c[1] + (ROSTER_SORT.key === (c[0] === "updated" ? "updatedTs" : c[0]) ? (d > 0 ? " ▲" : " ▼") : "");
+    th.onclick = function(){ var key = c[0] === "updated" ? "updatedTs" : c[0]; ROSTER_SORT = { key: key, dir: ROSTER_SORT.key === key ? -ROSTER_SORT.dir : (key === "updatedTs" ? -1 : 1) }; renderAll(); };
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr); t.appendChild(thead);
+  var tb = document.createElement("tbody");
+  sorted.slice(0, 500).forEach(function(c){
+    var r = document.createElement("tr"); r.className = "row"; r.onclick = function(){ openDetail(c.id); };
+    var due = c.overdue === null || c.overdue === undefined ? "" : (c.overdue > 0 ? c.due + "（" + c.overdue + "日超過）" : c.overdue === 0 ? "今日" : c.due);
+    [c.name, c.company || "", c.status, c.tanto || "", c.next || "", due, c.updated || ""].forEach(function(v, i){ var td = document.createElement("td"); td.textContent = v; if (i === 5 && c.overdue > 0) td.style.color = "#C0392B"; r.appendChild(td); });
+    tb.appendChild(r);
+  });
+  t.appendChild(tb);
+  return t;
 }
 
 // ---- 候補者の詳細（1人について見る・更新する） ----
@@ -1136,6 +1194,11 @@ function fillTplClient(text, ctx){
   Object.keys(ctx || {}).forEach(function(k){ t = t.split("{" + k + "}").join(ctx[k] == null ? "" : String(ctx[k])); });
   return t.split("\n").filter(function(l){ return !/^[^:：]{1,12}[:：]\s*$/.test(l); }).join("\n");
 }
+
+document.addEventListener("keydown", function(ev){
+  if (ev.key === "Escape"){ if (DETAIL_ID !== null && DETAIL_ID !== undefined && $("case_detail").style.display !== "none") closeDetail(); }
+});
+window.addEventListener("resize", function(){ if (STATE && STATE.all && MODE === "admin") renderAll(); });
 
 function closeLiff(){
   try { liff.closeWindow(); } catch (e) { $("done").style.display = "none"; }

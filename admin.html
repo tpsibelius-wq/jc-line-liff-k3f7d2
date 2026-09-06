@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>沼津JC公式LINE 管理画面</title>
+<style>
+  body { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; text-align: center; padding: 48px 16px; color: #333; }
+  a { color: #06c; }
+</style>
+</head>
+<body>
+<p>管理画面を開いています…（初回はLINEログインが出ます）</p>
+<p><a id="lnk" href="#">開かない場合はこちらをタップ</a></p>
+<script>
+// PCのブラウザ用の入口。ブックマークはこのページに。管理画面（LIFF）へ転送する
+var LIFF_ID = "2011464754-qYbl2VQR";
+var url = "https://liff.line.me/" + LIFF_ID + "?p=admin" + (location.search ? "&" + location.search.slice(1) : "");
+document.getElementById("lnk").href = url;
+location.replace(url);
+</script>
+</body>
+</html>
