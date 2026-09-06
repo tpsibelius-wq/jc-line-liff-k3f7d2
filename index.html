@@ -58,6 +58,7 @@ a.sheet{font-size:13px;color:#1F4E79}
   </div>
   <h2>あなたの申込状況</h2><div id="hist"></div>
 </div>
+<div id="dbg" style="font-size:10px;color:#999;margin-top:20px;word-break:break-all"></div>
 
 <div id="admin_ui">
   <div class="panel">
@@ -88,6 +89,8 @@ var LIFF_ID = "2011464754-qYbl2VQR";
 var API = "https://script.google.com/macros/s/AKfycbziKZweNT8sibVn54UrfNpQMsTxtxgBH1CqOtzLK_le7vdHdOj0eN9YbapdpG1twYMw/exec";
 
 var TOKEN = "", STATE = null, TARGET = "", MODE = "user", A_IMG = "";
+var DBG = {};
+function showDbg(extra){ var d = $("dbg"); if (!d) return; d.textContent = "mode=" + MODE + (extra ? " / " + extra : "") + (DBG.state ? " / state=" + DBG.state : "") + (DBG.raw ? " / q=" + DBG.raw : ""); }
 function $(id){ return document.getElementById(id); }
 function say(t){ $("msg").textContent = t; }
 window.onerror = function(m, src, line){ say("エラー: " + m + " (line " + line + ")"); };
@@ -103,12 +106,14 @@ function api(action, payload){
 function parseParams(){
   var out = { ev: "", p: "" };
   try {
-    var q = new URLSearchParams(location.search);
-    var st = q.get("liff.state");
-    if (st){ var q2 = new URLSearchParams(st.charAt(0) === "?" ? st : "?" + st); if (q2.get("ev")) out.ev = q2.get("ev"); if (q2.get("p")) out.p = q2.get("p"); }
-    if (q.get("ev")) out.ev = q.get("ev");
-    if (q.get("p")) out.p = q.get("p");
-  } catch (e) {}
+    var raw = location.search || "";
+    var m = raw.match(/[?&]liff\.state=([^&]*)/);
+    var st = m ? decodeURIComponent(m[1]) : "";
+    var pick = function(src, key){ var mm = String(src).match(new RegExp("(?:^|[?&/])" + key + "=([^&]*)")); return mm ? decodeURIComponent(mm[1]) : ""; };
+    out.ev = pick(raw, "ev") || pick(st, "ev");
+    out.p = pick(raw, "p") || pick(st, "p");
+    DBG.raw = raw.slice(0, 80); DBG.state = st.slice(0, 80);
+  } catch (e) { DBG.err = String(e); }
   return out;
 }
 
@@ -121,6 +126,7 @@ function boot(){
     if (!TOKEN){ say("本人確認トークンが取得できませんでした。開き直してください"); return; }
     var prm = parseParams();
     TARGET = prm.ev; MODE = prm.p === "admin" ? "admin" : "user";
+    showDbg();
     say("本人確認中…");
     if (MODE === "admin"){
       $("hdr").textContent = "沼津JC 管理メニュー";
@@ -151,6 +157,7 @@ function render(st){
   STATE = st;
   $("user_ui").style.display = "block";
   $("adminlink").style.display = st.isAdmin ? "block" : "none";
+  showDbg("me=" + (st.me || "?") + " admin=" + (st.isAdmin ? "yes" : "no"));
   say("こんにちは、" + (st.user.name || "ゲスト") + "さん");
   var ev = $("events"); ev.innerHTML = "";
   st.events.forEach(function(e){
