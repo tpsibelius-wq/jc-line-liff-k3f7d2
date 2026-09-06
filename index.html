@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>沼津JC イベント</title>
+<style>
+body{font-family:sans-serif;margin:0;background:#f5f7fa;color:#222}
+header{background:#1F4E79;color:#fff;padding:14px 16px;font-size:16px;font-weight:bold}
+#wrap{padding:12px;max-width:640px;margin:0 auto}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px;overflow:hidden}
+.card img{width:100%;display:block}
+.cb{padding:12px}
+.t{font-weight:bold;font-size:16px;margin-bottom:4px}
+.m{font-size:13px;color:#555;margin-bottom:2px}
+.chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;margin-top:6px}
+.ok{background:#E8F5E9;color:#2E7D32}
+.ng{background:#eee;color:#777}
+button{border:0;border-radius:8px;font-size:14px;font-weight:bold;padding:10px 14px}
+.join{background:#1F4E79;color:#fff;width:100%;margin-top:8px}
+.cancel{background:none;color:#C0392B;font-size:12px;padding:6px 0;text-decoration:underline}
+label{display:block;font-size:12px;font-weight:bold;margin:8px 0 2px}
+input,select,textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #bbb;border-radius:6px;font-size:14px}
+#formbox{display:none;background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
+#send{background:#C0392B;color:#fff;width:100%;margin-top:12px}
+h2{font-size:14px;color:#1F4E79;margin:16px 0 8px}
+#msg{font-size:13px;color:#1F4E79;padding:8px 0;white-space:pre-wrap}
+.hist{font-size:13px;background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px}
+</style>
+</head>
+<body>
+<header>沼津JC イベント</header>
+<div id="wrap">
+<div id="msg">読み込み中…</div>
+<div id="events"></div>
+<div id="formbox">
+  <div class="t" id="ftitle"></div>
+  <label>お名前 ※必須</label><input id="f_name">
+  <label>会社名・屋号</label><input id="f_company">
+  <label>業種</label><select id="f_gyoshu"><option value="">（選択）</option></select>
+  <label>連絡先（電話またはメール）※必須</label><input id="f_contact">
+  <label>このイベントを知ったきっかけ</label><select id="f_kikkake"><option value="">（選択）</option></select>
+  <label>ご紹介者（いれば）</label><input id="f_shokai">
+  <label>同伴者（いれば人数・お名前）</label><input id="f_dohan">
+  <label>ひとことメモ（任意）</label><input id="f_memo">
+  <label style="font-weight:normal"><input type="checkbox" id="f_doui" style="width:auto"> 記入内容をイベント運営・今後のご案内の目的で沼津JC会員拡大委員会が利用することに同意します</label>
+  <button id="send" onclick="sendApply()">この内容で申し込む</button>
+</div>
+<h2>あなたの申込状況</h2><div id="hist"></div>
+</div>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+var LIFF_ID = "2011464754-qYbl2VQR";
+var API = "https://script.google.com/macros/s/AKfycbziKZweNT8sibVn54UrfNpQMsTxtxgBH1CqOtzLK_le7vdHdOj0eN9YbapdpG1twYMw/exec";
+
+var TOKEN = "", STATE = null, TARGET = "";
+function $(id){ return document.getElementById(id); }
+function say(t){ $("msg").textContent = t; }
+window.onerror = function(m, src, line){ say("エラー: " + m + " (line " + line + ")"); };
+window.addEventListener("unhandledrejection", function(ev){ say("Promiseエラー: " + (ev.reason && ev.reason.message ? ev.reason.message : ev.reason)); });
+
+function api(action, payload){
+  var body = Object.assign({ action: action, token: TOKEN }, payload || {});
+  return fetch(API, { method: "POST", body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); })
+    .then(function(j){ if (j && j.error) throw new Error(j.error); return j; });
+}
+
+function parseTarget(){
+  try {
+    var q = new URLSearchParams(location.search);
+    var ev = q.get("ev");
+    var st = q.get("liff.state");
+    if (!ev && st) {
+      var q2 = new URLSearchParams(st.charAt(0) === "?" ? st : "?" + st);
+      ev = q2.get("ev");
+    }
+    return ev || "";
+  } catch (e) { return ""; }
+}
+
+function boot(){
+  if (typeof liff === "undefined"){ say("LIFF SDKが読み込めませんでした。通信環境を確認して開き直してください"); return; }
+  say("初期化中…");
+  liff.init({ liffId: LIFF_ID }).then(function(){
+    if (!liff.isLoggedIn()){ say("LINEログインへ移動します…"); liff.login(); return; }
+    TOKEN = liff.getIDToken();
+    if (!TOKEN){ say("本人確認トークンが取得できませんでした。開き直してください"); return; }
+    TARGET = parseTarget();
+    say("本人確認中…");
+    api("liff_bootstrap").then(render).catch(function(e){ say("エラー: " + e.message); });
+  }).catch(function(e){ say("LIFF初期化エラー: " + (e && e.message ? e.message : e)); });
+}
+
+function fillSelect(id, list, val){
+  var s = $(id);
+  list.forEach(function(v){ var o = document.createElement("option"); o.value = v; o.textContent = v; s.appendChild(o); });
+  if (val) s.value = val;
+}
+
+function render(st){
+  STATE = st;
+  say("こんにちは、" + (st.user.name || "ゲスト") + "さん");
+  var ev = $("events"); ev.innerHTML = "";
+  st.events.forEach(function(e){
+    var c = document.createElement("div"); c.className = "card";
+    if (e.img){ var im = document.createElement("img"); im.src = e.img; c.appendChild(im); }
+    var b = document.createElement("div"); b.className = "cb";
+    var t = document.createElement("div"); t.className = "t"; t.textContent = e.name; b.appendChild(t);
+    var m1 = document.createElement("div"); m1.className = "m"; m1.textContent = "📅 " + e.date + " " + e.time; b.appendChild(m1);
+    var m2 = document.createElement("div"); m2.className = "m"; m2.textContent = "📍 " + e.place; b.appendChild(m2);
+    var m3 = document.createElement("div"); m3.className = "m"; m3.textContent = e.desc; b.appendChild(m3);
+    if (e.applied){
+      var ch = document.createElement("span"); ch.className = "chip ok"; ch.textContent = "申込済み ✓"; b.appendChild(ch);
+      var cx = document.createElement("button"); cx.className = "cancel"; cx.textContent = "キャンセルする";
+      cx.onclick = function(){
+        if (confirm(e.name + " の申込をキャンセルしますか？")) api("liff_cancel", { ev: e.name }).then(render).catch(function(er){ say("エラー: " + er.message); });
+      };
+      b.appendChild(cx);
+    } else if (!e.open){
+      var ch2 = document.createElement("span"); ch2.className = "chip ng"; ch2.textContent = "受付終了"; b.appendChild(ch2);
+    } else {
+      var bt = document.createElement("button"); bt.className = "join";
+      bt.textContent = "参加する" + (e.deadline ? "（締切" + e.deadline + "）" : "");
+      bt.onclick = function(){ openForm(e.name); };
+      b.appendChild(bt);
+    }
+    c.appendChild(b); ev.appendChild(c);
+  });
+  if ($("f_gyoshu").options.length <= 1){
+    fillSelect("f_gyoshu", st.gyoshuList, st.prefill.gyoshu);
+    fillSelect("f_kikkake", st.keiroList, st.prefill.kikkake);
+  }
+  $("f_name").value = st.prefill.name || $("f_name").value;
+  $("f_company").value = st.prefill.company || $("f_company").value;
+  $("f_contact").value = st.prefill.contact || $("f_contact").value;
+  $("f_shokai").value = st.prefill.shokai || $("f_shokai").value;
+  var h = $("hist"); h.innerHTML = "";
+  if (!st.history.length){ h.textContent = "まだ申込はありません"; }
+  st.history.forEach(function(x){
+    var d = document.createElement("div"); d.className = "hist";
+    d.textContent = x.event + "（" + x.at + "）" + (x.cancelled ? " … キャンセル済み" : " … 申込済み✓") + (x.dohan ? " 同伴:" + x.dohan : "");
+    h.appendChild(d);
+  });
+  $("formbox").style.display = "none";
+  var tgt = STATE.events.filter(function(e){ return e.name === TARGET && e.open && !e.applied; })[0];
+  if (tgt) openForm(tgt.name);
+  TARGET = "";
+}
+
+function openForm(name){
+  $("ftitle").textContent = name + " への参加申込";
+  $("formbox").dataset.ev = name;
+  $("formbox").style.display = "block";
+  $("formbox").scrollIntoView({ behavior: "smooth" });
+}
+
+function sendApply(){
+  var d = { name: $("f_name").value, company: $("f_company").value, gyoshu: $("f_gyoshu").value,
+            contact: $("f_contact").value, kikkake: $("f_kikkake").value, shokai: $("f_shokai").value,
+            dohan: $("f_dohan").value, memo: $("f_memo").value, doui: $("f_doui").checked };
+  if (!d.name.trim()){ alert("お名前を入力してください"); return; }
+  if (!d.contact.trim()){ alert("連絡先を入力してください"); return; }
+  if (!d.doui){ alert("同意のチェックをお願いします"); return; }
+  $("send").disabled = true;
+  say("送信中…");
+  api("liff_apply", { ev: $("formbox").dataset.ev, data: d }).then(function(st){
+    $("send").disabled = false;
+    say("お申込みありがとうございました✅");
+    render(st);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }).catch(function(e){ $("send").disabled = false; say("エラー: " + e.message); });
+}
+
+boot();
+</script>
+</body>
+</html>
