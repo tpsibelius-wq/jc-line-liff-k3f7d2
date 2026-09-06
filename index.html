@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
+<link rel="preload" as="script" href="https://static.line-scdn.net/liff/edge/2/sdk.js">
 <title>沼津JC イベント</title>
 <style>
 body{font-family:sans-serif;margin:0;background:#f5f7fa;color:#222}
@@ -210,6 +213,7 @@ a.sheet{font-size:13px;color:#1F4E79}
 <script>
 var LIFF_ID = "2011464754-qYbl2VQR";
 var API = "https://script.google.com/macros/s/AKfycbziKZweNT8sibVn54UrfNpQMsTxtxgBH1CqOtzLK_le7vdHdOj0eN9YbapdpG1twYMw/exec";
+var WORKER = "https://jc-line-api.election-dashboard-2026.workers.dev"; // 起動データの高速経路（Cloudflare Workers のURL。例 https://jc-line-api.xxxx.workers.dev）。空ならGASのみ
 
 var TOKEN = "", STATE = null, TARGET = "", MODE = "user", A_IMG = "", A_RATIO = "", COPY_FROM = "";
 var DBG = {};
@@ -220,6 +224,7 @@ window.onerror = function(m, src, line){ say("エラー: " + m + " (line " + lin
 window.addEventListener("unhandledrejection", function(ev){ say("Promiseエラー: " + (ev.reason && ev.reason.message ? ev.reason.message : ev.reason)); });
 
 function api(action, payload){
+  return READY.then(function(){
   var body = Object.assign({ action: action, token: TOKEN }, payload || {});
   return fetch(API, { method: "POST", body: JSON.stringify(body) })
     .catch(function(){ throw new Error("通信に失敗しました。電波の良い場所でもう一度お試しください"); })
@@ -236,9 +241,42 @@ function api(action, payload){
         }
         throw new Error(j.error);
       }
+      cacheSave(j);
       return j;
     });
+  });
 }
+
+// ---- 前回の画面をスマホ内に保存し、次回は開いた瞬間に表示（最新は裏で取り直して差し替える）----
+function cacheKey(mode){ return "jc_state_" + mode; }
+function cacheSave(st){
+  try {
+    if (!st || !st.events) return;
+    var mode = st.stats ? "admin" : (st.myApplies ? "user" : "");
+    if (!mode) return;
+    var copy = Object.assign({}, st); delete copy.done; delete copy.message; delete copy.serverMs;
+    localStorage.setItem(cacheKey(mode), JSON.stringify({ t: Date.now(), st: copy }));
+  } catch (e) {}
+}
+function cacheLoad(mode){
+  try {
+    var raw = localStorage.getItem(cacheKey(mode)); if (!raw) return null;
+    var o = JSON.parse(raw);
+    if (!o || !o.st || Date.now() - o.t > 24 * 3600 * 1000) return null;
+    return o.st;
+  } catch (e) { return null; }
+}
+
+// ---- 計測（画面下の薄い文字に出す）----
+var TM = {};
+function showTiming(st){
+  var s = function(ms){ return (ms / 1000).toFixed(1) + "秒"; };
+  showDbg("読込 " + s(TM.sdk || 0) + " / 初期化 " + s((TM.init || 0) - (TM.sdk || 0)) + " / 本人確認〜表示 " + s((TM.boot || 0) - (TM.init || 0))
+    + (st && st.serverMs ? "（うちサーバー処理 " + s(st.serverMs) + "）" : "") + (st && st.fromEdge ? "（Cloudflare経由）" : "") + (FROM_CACHE ? " / 前回の画面を先に表示" : ""));
+}
+var FROM_CACHE = false;
+// 本人確認が済むまでAPI呼び出しを待たせる（前回画面のボタンを早く押しても大丈夫なように）
+var READY_RESOLVE; var READY = new Promise(function(r){ READY_RESOLVE = r; });
 
 // 再ログイン後に、退避しておいた操作を続きから実行
 function resumePending(){
@@ -289,25 +327,51 @@ function fillSelect(id, list, val){
   if (val) s.value = val;
 }
 
+// ---- 起動データの高速経路（Cloudflare Workers）。3秒で返らない／エラーならGASへ切り替える ----
+function fastBootstrap(action){
+  if (!WORKER) return api(action);
+  var ctrl = ("AbortController" in window) ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 3000) : null;
+  return READY.then(function(){
+    return fetch(WORKER, { method: "POST", body: JSON.stringify({ action: action, token: TOKEN }), signal: ctrl ? ctrl.signal : undefined })
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if (!j || j.error) throw new Error((j && j.error) || "worker"); cacheSave(j); return j; });
+  }).catch(function(){ return api(action); }).then(function(j){ if (timer) clearTimeout(timer); return j; });
+}
+
 function boot(){
+  TM.sdk = performance.now();
   if (typeof liff === "undefined"){ say("LIFF SDKが読み込めませんでした。通信環境を確認して開き直してください"); return; }
-  say("初期化中…");
+  // 前回の画面があれば先に出す（初期化・本人確認を待たない）
+  var prm0 = parseParams();
+  TARGET = prm0.ev; MODE = prm0.p === "admin" ? "admin" : "user";
+  var cached = cacheLoad(MODE);
+  if (cached){
+    FROM_CACHE = true;
+    if (MODE === "admin"){ $("hdr").textContent = "沼津JC 管理メニュー"; renderAdmin(cached); } else { render(cached); }
+    say("前回の内容を表示しています。最新の情報を確認中…");
+  } else {
+    say("初期化中…");
+  }
   liff.init({ liffId: LIFF_ID }).then(function(){
+    TM.init = performance.now();
     if (!liff.isLoggedIn()){ say("LINEログインへ移動します…"); liff.login(); return; }
     TOKEN = liff.getIDToken();
     if (!TOKEN){ say("本人確認トークンが取得できませんでした。開き直してください"); return; }
+    READY_RESOLVE();
     var prm = parseParams();
-    TARGET = prm.ev; MODE = prm.p === "admin" ? "admin" : "user";
+    TARGET = prm.ev || TARGET; MODE = prm.p === "admin" ? "admin" : "user";
     showDbg();
     try { sessionStorage.removeItem("relogin"); } catch (e) {}
     if (resumePending()) return;
-    say("本人確認中…");
+    if (!cached) say("本人確認中…");
+    var done = function(fn){ return function(st){ TM.boot = performance.now(); fn(st); showTiming(st); }; };
     if (MODE === "admin"){
       $("hdr").textContent = "沼津JC 管理メニュー";
       $("user_ui").style.display = "none";
-      api("liff_admin_bootstrap").then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
+      fastBootstrap("liff_admin_bootstrap").then(done(renderAdmin)).catch(function(e){ say("エラー: " + e.message); });
     } else {
-      api("liff_bootstrap").then(render).catch(function(e){ say("エラー: " + e.message); });
+      fastBootstrap("liff_bootstrap").then(done(render)).catch(function(e){ say("エラー: " + e.message); });
     }
   }).catch(function(e){ say("LIFF初期化エラー: " + (e && e.message ? e.message : e)); });
 }
@@ -319,7 +383,7 @@ function switchToAdmin(){
   $("user_ui").style.display = "none";
   $("hdr").textContent = "沼津JC 管理メニュー";
   say("管理画面を読み込み中…");
-  api("liff_admin_bootstrap").then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
+  fastBootstrap("liff_admin_bootstrap").then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
 }
 
 function render(st){
