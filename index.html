@@ -41,6 +41,7 @@ a.sheet{font-size:13px;color:#1F4E79}
 <div id="msg">読み込み中…</div>
 
 <div id="user_ui">
+  <div id="adminlink" style="display:none;margin-bottom:10px"><button class="join" style="background:#16283c" onclick="switchToAdmin()">▶ 管理画面を開く（管理者のみ表示）</button></div>
   <div id="events"></div>
   <div id="formbox" class="panel">
     <div class="t" id="ftitle"></div>
@@ -138,9 +139,18 @@ function fillSelect(id, list, val){
   if (val) s.value = val;
 }
 
+function switchToAdmin(){
+  MODE = "admin";
+  $("user_ui").style.display = "none";
+  $("hdr").textContent = "沼津JC 管理メニュー";
+  say("管理画面を読み込み中…");
+  api("liff_admin_bootstrap").then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
+}
+
 function render(st){
   STATE = st;
   $("user_ui").style.display = "block";
+  $("adminlink").style.display = st.isAdmin ? "block" : "none";
   say("こんにちは、" + (st.user.name || "ゲスト") + "さん");
   var ev = $("events"); ev.innerHTML = "";
   st.events.forEach(function(e){
