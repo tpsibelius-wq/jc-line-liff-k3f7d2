@@ -22,39 +22,71 @@ button{border:0;border-radius:8px;font-size:14px;font-weight:bold;padding:10px 1
 .cancel{background:none;color:#C0392B;font-size:12px;padding:6px 0;text-decoration:underline}
 label{display:block;font-size:12px;font-weight:bold;margin:8px 0 2px}
 input,select,textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #bbb;border-radius:6px;font-size:14px}
-#formbox{display:none;background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
-#send{background:#C0392B;color:#fff;width:100%;margin-top:12px}
+textarea{height:72px}
+#formbox,#admin_ui{display:none}
+.panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
+#send,#a_savebc{background:#C0392B;color:#fff;width:100%;margin-top:12px}
+#a_save{background:#1F4E79;color:#fff;width:100%;margin-top:12px}
 h2{font-size:14px;color:#1F4E79;margin:16px 0 8px}
 #msg{font-size:13px;color:#1F4E79;padding:8px 0;white-space:pre-wrap}
 .hist{font-size:13px;background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px}
+.hint{font-size:11px;color:#777;margin-top:2px}
+#a_prev{display:none;max-width:100%;border-radius:8px;margin-top:8px}
+a.sheet{font-size:13px;color:#1F4E79}
 </style>
 </head>
 <body>
-<header>沼津JC イベント</header>
+<header id="hdr">沼津JC イベント</header>
 <div id="wrap">
 <div id="msg">読み込み中…</div>
-<div id="events"></div>
-<div id="formbox">
-  <div class="t" id="ftitle"></div>
-  <label>お名前 ※必須</label><input id="f_name">
-  <label>会社名・屋号</label><input id="f_company">
-  <label>業種</label><select id="f_gyoshu"><option value="">（選択）</option></select>
-  <label>連絡先（電話またはメール）※必須</label><input id="f_contact">
-  <label>このイベントを知ったきっかけ</label><select id="f_kikkake"><option value="">（選択）</option></select>
-  <label>ご紹介者（いれば）</label><input id="f_shokai">
-  <label>同伴者（いれば人数・お名前）</label><input id="f_dohan">
-  <label>ひとことメモ（任意）</label><input id="f_memo">
-  <label style="font-weight:normal"><input type="checkbox" id="f_doui" style="width:auto"> 記入内容をイベント運営・今後のご案内の目的で沼津JC会員拡大委員会が利用することに同意します</label>
-  <button id="send" onclick="sendApply()">この内容で申し込む</button>
+
+<div id="user_ui">
+  <div id="events"></div>
+  <div id="formbox" class="panel">
+    <div class="t" id="ftitle"></div>
+    <label>お名前 ※必須</label><input id="f_name">
+    <label>会社名・屋号</label><input id="f_company">
+    <label>業種</label><select id="f_gyoshu"><option value="">（選択）</option></select>
+    <label>連絡先（電話またはメール）※必須</label><input id="f_contact">
+    <label>このイベントを知ったきっかけ</label><select id="f_kikkake"><option value="">（選択）</option></select>
+    <label>ご紹介者（いれば）</label><input id="f_shokai">
+    <label>同伴者（いれば人数・お名前）</label><input id="f_dohan">
+    <label>ひとことメモ（任意）</label><input id="f_memo">
+    <label style="font-weight:normal"><input type="checkbox" id="f_doui" style="width:auto"> 記入内容をイベント運営・今後のご案内の目的で沼津JC会員拡大委員会が利用することに同意します</label>
+    <button id="send" onclick="sendApply()">この内容で申し込む</button>
+  </div>
+  <h2>あなたの申込状況</h2><div id="hist"></div>
 </div>
-<h2>あなたの申込状況</h2><div id="hist"></div>
+
+<div id="admin_ui">
+  <div class="panel">
+    <div class="t">イベント登録・配信</div>
+    <label>既存イベントを読み込む（修正時）</label>
+    <select id="a_ev" onchange="adminLoad()"><option value="">（新規作成）</option></select>
+    <label>イベント名 ※必須</label><input id="a_name">
+    <label>開催日</label><input id="a_date" type="date">
+    <label>時間</label><input id="a_time" placeholder="19:00〜21:00">
+    <label>場所</label><input id="a_place">
+    <label>案内文</label><textarea id="a_desc"></textarea>
+    <label>申込締切日（空欄=制限なし）</label><input id="a_deadline" type="date">
+    <label>定員（空欄=制限なし）</label><input id="a_cap" type="number" min="1">
+    <label>チラシ・画像（任意）</label><input id="a_img" type="file" accept="image/*">
+    <div class="hint">自動で縮小されます。配信カード・イベント案内に載ります</div>
+    <img id="a_prev">
+    <label style="font-weight:normal"><input type="checkbox" id="a_active" checked style="width:auto"> 受付中（外すと案内・申込から消えます）</label>
+    <button id="a_save" onclick="adminSave(false)">保存する（配信はしない）</button>
+    <button id="a_savebc" onclick="adminSave(true)">保存して、今すぐ全員に配信する</button>
+  </div>
+  <h2>申込状況</h2><div id="a_stats" class="hist"></div>
+  <div><a id="a_sheet" class="sheet" target="_blank" rel="noopener">▶ 台帳スプレッドシートを開く</a></div>
+</div>
 </div>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
 var LIFF_ID = "2011464754-qYbl2VQR";
 var API = "https://script.google.com/macros/s/AKfycbziKZweNT8sibVn54UrfNpQMsTxtxgBH1CqOtzLK_le7vdHdOj0eN9YbapdpG1twYMw/exec";
 
-var TOKEN = "", STATE = null, TARGET = "";
+var TOKEN = "", STATE = null, TARGET = "", MODE = "user", A_IMG = "";
 function $(id){ return document.getElementById(id); }
 function say(t){ $("msg").textContent = t; }
 window.onerror = function(m, src, line){ say("エラー: " + m + " (line " + line + ")"); };
@@ -67,17 +99,16 @@ function api(action, payload){
     .then(function(j){ if (j && j.error) throw new Error(j.error); return j; });
 }
 
-function parseTarget(){
+function parseParams(){
+  var out = { ev: "", p: "" };
   try {
     var q = new URLSearchParams(location.search);
-    var ev = q.get("ev");
     var st = q.get("liff.state");
-    if (!ev && st) {
-      var q2 = new URLSearchParams(st.charAt(0) === "?" ? st : "?" + st);
-      ev = q2.get("ev");
-    }
-    return ev || "";
-  } catch (e) { return ""; }
+    if (st){ var q2 = new URLSearchParams(st.charAt(0) === "?" ? st : "?" + st); if (q2.get("ev")) out.ev = q2.get("ev"); if (q2.get("p")) out.p = q2.get("p"); }
+    if (q.get("ev")) out.ev = q.get("ev");
+    if (q.get("p")) out.p = q.get("p");
+  } catch (e) {}
+  return out;
 }
 
 function boot(){
@@ -87,11 +118,19 @@ function boot(){
     if (!liff.isLoggedIn()){ say("LINEログインへ移動します…"); liff.login(); return; }
     TOKEN = liff.getIDToken();
     if (!TOKEN){ say("本人確認トークンが取得できませんでした。開き直してください"); return; }
-    TARGET = parseTarget();
+    var prm = parseParams();
+    TARGET = prm.ev; MODE = prm.p === "admin" ? "admin" : "user";
     say("本人確認中…");
-    api("liff_bootstrap").then(render).catch(function(e){ say("エラー: " + e.message); });
+    if (MODE === "admin"){
+      $("hdr").textContent = "沼津JC 管理メニュー";
+      api("liff_admin_bootstrap").then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
+    } else {
+      api("liff_bootstrap").then(render).catch(function(e){ say("エラー: " + e.message); });
+    }
   }).catch(function(e){ say("LIFF初期化エラー: " + (e && e.message ? e.message : e)); });
 }
+
+/* ---------- 参加者モード ---------- */
 
 function fillSelect(id, list, val){
   var s = $(id);
@@ -101,6 +140,7 @@ function fillSelect(id, list, val){
 
 function render(st){
   STATE = st;
+  $("user_ui").style.display = "block";
   say("こんにちは、" + (st.user.name || "ゲスト") + "さん");
   var ev = $("events"); ev.innerHTML = "";
   st.events.forEach(function(e){
@@ -171,6 +211,81 @@ function sendApply(){
     render(st);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }).catch(function(e){ $("send").disabled = false; say("エラー: " + e.message); });
+}
+
+/* ---------- 管理者モード ---------- */
+
+$("a_img").addEventListener("change", function(ev){
+  var f = ev.target.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      var w = Math.min(1200, im.width);
+      var h = Math.round(im.height * w / im.width);
+      var c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(im, 0, 0, w, h);
+      A_IMG = c.toDataURL("image/jpeg", 0.85);
+      $("a_prev").src = A_IMG;
+      $("a_prev").style.display = "block";
+    };
+    im.src = r.result;
+  };
+  r.readAsDataURL(f);
+});
+
+function renderAdmin(st){
+  STATE = st;
+  $("admin_ui").style.display = "block";
+  if (st.message){ say(st.message); } else { say("管理メニュー（イベントの作成・修正・配信）"); }
+  var s = $("a_ev");
+  var cur = s.value;
+  s.innerHTML = "<option value=''>（新規作成）</option>";
+  st.events.forEach(function(e){
+    var o = document.createElement("option");
+    o.value = e.name;
+    o.textContent = e.name + "（申込" + e.count + (e.cap ? "/" + e.cap : "") + "件・" + (e.active ? (e.open ? "受付中" : "受付終了") : "停止中") + "）";
+    s.appendChild(o);
+  });
+  if (cur) s.value = cur;
+  var stats = $("a_stats");
+  var lines = [];
+  st.events.forEach(function(e){ lines.push("🎫 " + e.name + ": " + e.count + (e.cap ? "／定員" + e.cap : "") + "件"); });
+  var total = 0; Object.keys(st.stats || {}).forEach(function(k){ total += st.stats[k]; });
+  lines.push("👥 打席表: " + total + "人");
+  stats.textContent = lines.join(" ／ ");
+  $("a_sheet").href = st.sheetUrl;
+}
+
+function adminLoad(){
+  var n = $("a_ev").value;
+  A_IMG = ""; $("a_prev").style.display = "none"; $("a_img").value = "";
+  if (!n){ ["a_name","a_date","a_time","a_place","a_desc","a_deadline","a_cap"].forEach(function(id){ $(id).value = ""; }); $("a_active").checked = true; return; }
+  var e = STATE.events.filter(function(x){ return x.name === n; })[0];
+  if (!e) return;
+  $("a_name").value = e.name; $("a_date").value = e.date; $("a_time").value = e.time;
+  $("a_place").value = e.place; $("a_desc").value = e.desc; $("a_deadline").value = e.deadline;
+  $("a_cap").value = e.cap; $("a_active").checked = e.active;
+  if (e.img){ $("a_prev").src = e.img; $("a_prev").style.display = "block"; }
+  say("読み込みました（画像は再選択したときだけ差し替わります）");
+}
+
+function adminSave(bc){
+  var d = { name: $("a_name").value.trim(), date: $("a_date").value, time: $("a_time").value,
+            place: $("a_place").value, desc: $("a_desc").value, deadline: $("a_deadline").value,
+            cap: $("a_cap").value, active: $("a_active").checked, imageBase64: A_IMG };
+  if (!d.name){ alert("イベント名は必須です"); return; }
+  if (bc && !confirm("保存して、友だち全員に今すぐ配信します。よろしいですか？")) return;
+  $("a_save").disabled = true; $("a_savebc").disabled = true;
+  say(bc ? "保存して配信中…" : "保存中…");
+  api("liff_admin_save", { data: d, broadcast: bc }).then(function(st){
+    $("a_save").disabled = false; $("a_savebc").disabled = false;
+    A_IMG = "";
+    renderAdmin(st);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }).catch(function(e){ $("a_save").disabled = false; $("a_savebc").disabled = false; say("エラー: " + e.message); });
 }
 
 boot();
