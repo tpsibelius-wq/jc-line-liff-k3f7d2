@@ -10,7 +10,7 @@
 <title>沼津JC公式LINE</title>
 <style>
 body{font-family:sans-serif;margin:0;background:#f5f7fa;color:#222}
-header{background:#1F4E79;color:#fff;padding:14px 16px;font-size:16px;font-weight:bold}
+header{background:#1F4789;color:#fff;padding:14px 16px;font-size:16px;font-weight:bold}
 #wrap{padding:12px;max-width:640px;margin:0 auto}
 .card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px;overflow:hidden}
 .card img{width:100%;display:block}
@@ -21,27 +21,27 @@ header{background:#1F4E79;color:#fff;padding:14px 16px;font-size:16px;font-weigh
 .ok{background:#E8F5E9;color:#2E7D32}
 .ng{background:#eee;color:#777}
 button{border:0;border-radius:8px;font-size:14px;font-weight:bold;padding:10px 14px}
-.tab{background:#e6ecf2;color:#3b6e9e;font-size:13px;padding:8px 10px}
-.tab.on{background:#3b6e9e;color:#fff}
+.tab{background:#e6ecf2;color:#0097D7;font-size:13px;padding:8px 10px}
+.tab.on{background:#0097D7;color:#fff}
 .vw{display:none}
 .vw.on{display:block}
-.join{background:#1F4E79;color:#fff;width:100%;margin-top:8px}
+.join{background:#1F4789;color:#fff;width:100%;margin-top:8px}
 .cancel{background:none;color:#C0392B;font-size:12px;padding:6px 0;text-decoration:underline}
-.mapbtn{display:inline-block;margin-top:8px;font-size:13px;color:#1F4E79;text-decoration:underline}
+.mapbtn{display:inline-block;margin-top:8px;font-size:13px;color:#1F4789;text-decoration:underline}
 label{display:block;font-size:12px;font-weight:bold;margin:8px 0 2px}
 input,select,textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #bbb;border-radius:6px;font-size:14px}
 textarea{height:72px}
 #formbox,#admin_ui{display:none}
 .panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
 #send,#a_savebc{background:#C0392B;color:#fff;width:100%;margin-top:12px}
-#a_save{background:#1F4E79;color:#fff;width:100%;margin-top:12px}
-#a_test{background:#3b6e9e;color:#fff;width:100%;margin-top:12px}
-h2{font-size:14px;color:#1F4E79;margin:16px 0 8px}
-#msg{font-size:13px;color:#1F4E79;padding:8px 0;white-space:pre-wrap}
+#a_save{background:#1F4789;color:#fff;width:100%;margin-top:12px}
+#a_test{background:#0097D7;color:#fff;width:100%;margin-top:12px}
+h2{font-size:14px;color:#1F4789;margin:16px 0 8px}
+#msg{font-size:13px;color:#1F4789;padding:8px 0;white-space:pre-wrap}
 .hist{font-size:13px;background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px;line-height:1.6}
 .hint{font-size:11px;color:#777;margin-top:2px}
 #a_prev{display:none;max-width:100%;border-radius:8px;margin-top:8px}
-a.sheet{font-size:13px;color:#1F4E79}
+a.sheet{font-size:13px;color:#1F4789}
 .apl{display:flex;justify-content:space-between;align-items:center;gap:6px;border-bottom:1px solid #eee;padding:8px 0;font-size:13px}
 .apl .nm{flex:1;min-width:0}
 .apl .nm small{color:#777;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -49,7 +49,7 @@ a.sheet{font-size:13px;color:#1F4E79}
 .b_att{background:#2E7D32;color:#fff}
 .b_abs{background:#999;color:#fff}
 .b_clr{background:#eee;color:#333}
-.b_sub{background:#eee;color:#1F4E79;font-size:12px;padding:6px 10px;margin:4px 4px 0 0}
+.b_sub{background:#eee;color:#1F4789;font-size:12px;padding:6px 10px;margin:4px 4px 0 0}
 .tag{font-size:11px;padding:2px 6px;border-radius:8px;background:#eee;color:#555;white-space:nowrap}
 .tag.att{background:#E8F5E9;color:#2E7D32}
 .tag.abs{background:#eee;color:#777}
@@ -78,7 +78,7 @@ a.sheet{font-size:13px;color:#1F4E79}
   label{font-size:13px}
   input,select,textarea{font-size:15px}
   table.roster{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;font-size:14px}
-  table.roster th{background:#e6ecf2;color:#1F4E79;text-align:left;padding:8px 10px;cursor:pointer;white-space:nowrap;user-select:none}
+  table.roster th{background:#e6ecf2;color:#1F4789;text-align:left;padding:8px 10px;cursor:pointer;white-space:nowrap;user-select:none}
   table.roster td{padding:8px 10px;border-top:1px solid #eee;vertical-align:top}
   table.roster tr.row:hover{background:#f3f6f9;cursor:pointer}
 }
@@ -121,7 +121,7 @@ a.sheet{font-size:13px;color:#1F4E79}
     <div id="full">
       <label>お名前 ※必須</label><input id="f_name">
       <label>連絡先（電話またはメール）※必須</label><input id="f_contact" placeholder="090-0000-0000 または メールアドレス">
-      <details id="f_more" style="margin-top:10px"><summary style="font-size:13px;color:#1F4E79;padding:6px 0">詳しく入力（任意：会社・業種・きっかけ・紹介者・同伴・メモ）</summary>
+      <details id="f_more" style="margin-top:10px"><summary style="font-size:13px;color:#1F4789;padding:6px 0">詳しく入力（任意：会社・業種・きっかけ・紹介者・同伴・メモ）</summary>
       <label>会社名・屋号</label><input id="f_company">
       <label>業種</label><select id="f_gyoshu"><option value="">（選択）</option></select>
       <label>このイベントを知ったきっかけ</label><select id="f_kikkake"><option value="">（選択）</option></select>
@@ -146,14 +146,14 @@ a.sheet{font-size:13px;color:#1F4E79}
       </div>
     </details>
   </div>
-  <div id="survey" class="panel" style="display:none;border:2px solid #3b6e9e">
+  <div id="survey" class="panel" style="display:none;border:2px solid #0097D7">
     <h2>入会後アンケート（1分）</h2>
     <div class="hint">受け入れをよくするために使います。委員会で共有しますが、個人が特定される形では公開しません</div>
     <label>入会してみて、いまの満足度は？</label>
     <select id="sv_score"><option value="">（選択）</option><option value="5">5 とても満足</option><option value="4">4 満足</option><option value="3">3 ふつう</option><option value="2">2 やや不満</option><option value="1">1 不満</option></select>
     <label>よかったこと</label><textarea id="sv_good" rows="2"></textarea>
     <label>困っていること・要望</label><textarea id="sv_bad" rows="2"></textarea>
-    <button type="button" id="sv_send" onclick="sendSurvey()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">送信する</button>
+    <button type="button" id="sv_send" onclick="sendSurvey()" style="background:#0097D7;color:#fff;width:100%;margin-top:8px">送信する</button>
   </div>
   <h2>あなたの申込状況</h2><div id="hist"></div>
   <div class="panel" id="ref_panel" style="margin-top:16px">
@@ -176,14 +176,14 @@ a.sheet{font-size:13px;color:#1F4E79}
     <button type="button" class="tab" data-v="texts" onclick="showView('texts')">✍️ 文面・設定</button>
     <button type="button" class="tab" onclick="showIntro(true)" title="使い方">？</button>
   </div>
-  <div id="intro" class="panel" style="display:none;border:2px solid #3b6e9e">
+  <div id="intro" class="panel" style="display:none;border:2px solid #0097D7">
     <div class="t">はじめに（3つだけ）</div>
     <div style="line-height:1.8;font-size:14px">
       <b>1. 毎日</b>：📌要対応 を上から見る。「話を聞いてみたい」が来たら当日中に「私が対応します」→ 本人には自動で一言が届くので、続きはLINE公式アカウントのチャットで返信<br>
       <b>2. イベント</b>：🎪イベント で登録 →「自分にだけテスト送信」で確認 →「今すぐ全員に配信」。当日は申込者一覧で出欠を「参加」に。御礼は翌朝自動<br>
       <b>3. 困ったら</b>：トークで「管理ヘルプ」「点検」。文面は ✍️文面・設定 から直せます。PCで使うときは admin.html をブックマーク
     </div>
-    <div style="display:flex;gap:8px;margin-top:10px"><button type="button" onclick="hideIntro()" style="background:#3b6e9e;color:#fff;flex:1">わかりました（次から出さない）</button></div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button type="button" onclick="hideIntro()" style="background:#0097D7;color:#fff;flex:1">わかりました（次から出さない）</button></div>
   </div>
   <section class="vw" data-v="todo">
   <h2 id="sec_todo">📌 要対応 <span id="todo_count" class="hint" style="font-weight:normal"></span></h2>
@@ -197,7 +197,7 @@ a.sheet{font-size:13px;color:#1F4E79}
     <div class="t">イベント登録・配信</div>
     <div id="ev_table"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
-      <button type="button" onclick="$('a_ev').value=''; adminLoad(); window.scrollTo({top: document.getElementById('a_name').offsetTop - 80, behavior: 'smooth'});" style="background:#3b6e9e;color:#fff;font-size:13px;padding:8px 12px">＋ 新しいイベント</button>
+      <button type="button" onclick="$('a_ev').value=''; adminLoad(); window.scrollTo({top: document.getElementById('a_name').offsetTop - 80, behavior: 'smooth'});" style="background:#0097D7;color:#fff;font-size:13px;padding:8px 12px">＋ 新しいイベント</button>
       <span id="ev_editing" class="hint"></span>
     </div>
     <select id="a_ev" onchange="adminLoad()" style="display:none"><option value="">（新規作成）</option></select>
@@ -214,7 +214,7 @@ a.sheet{font-size:13px;color:#1F4E79}
     <div class="hint">配信カードに載ります（自動で縮小）</div>
     <img id="a_prev">
     <label style="font-weight:normal"><input type="checkbox" id="a_active" checked style="width:auto"> 受付中（外すと案内・申込から消えます）</label>
-    <details id="a_more" style="margin-top:10px"><summary style="font-size:13px;color:#1F4E79;padding:6px 0">詳しい設定（参加費・地図・予約配信・締切前リマインド・御礼・画像を外す・複製）</summary>
+    <details id="a_more" style="margin-top:10px"><summary style="font-size:13px;color:#1F4789;padding:6px 0">詳しい設定（参加費・地図・予約配信・締切前リマインド・御礼・画像を外す・複製）</summary>
     <label>参加費（任意）</label><input id="a_fee" placeholder="3,000円（当日現金）">
     <label>地図URL（Googleマップの共有リンク・任意）</label><input id="a_map" placeholder="https://maps.app.goo.gl/...">
     <label>予約配信（日時を入れて保存すると、その時刻に自動で全員配信）</label>
@@ -258,14 +258,14 @@ a.sheet{font-size:13px;color:#1F4E79}
       <label>お名前 ※必須</label><input id="m_name">
       <label>連絡先</label><input id="m_contact">
       <label>同伴人数</label><select id="m_dohan_count"><option value="0">0名</option><option value="1">1名</option><option value="2">2名</option><option value="3">3名</option><option value="4">4名</option><option value="5">5名</option></select>
-      <details style="margin-top:6px"><summary style="font-size:12px;color:#1F4E79;padding:4px 0">詳しく（会社・きっかけ・紹介者・同伴者名・メモ）</summary>
+      <details style="margin-top:6px"><summary style="font-size:12px;color:#1F4789;padding:4px 0">詳しく（会社・きっかけ・紹介者・同伴者名・メモ）</summary>
       <label>会社名・屋号</label><input id="m_company">
       <label>きっかけ</label><select id="m_kikkake"><option value="">（選択）</option></select>
       <label>ご紹介者</label><input id="m_shokai" list="member_names">
       <label>同伴者のお名前</label><input id="m_dohan">
       <label>メモ（受付した委員名など）</label><input id="m_memo">
       </details>
-      <button type="button" onclick="adminAddApply()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">この内容で申込を追加する</button>
+      <button type="button" onclick="adminAddApply()" style="background:#0097D7;color:#fff;width:100%;margin-top:8px">この内容で申込を追加する</button>
     </div>
 
     <div class="sub">
@@ -278,7 +278,7 @@ a.sheet{font-size:13px;color:#1F4E79}
         <button type="button" class="b_sub" onclick="insertTpl('remind')">当日のご案内</button>
       </div>
       <textarea id="a_msg" placeholder="本文を入力（定型文ボタンで挿入できます）"></textarea>
-      <button id="a_send" onclick="adminMessage()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">申込者に送信する</button>
+      <button id="a_send" onclick="adminMessage()" style="background:#0097D7;color:#fff;width:100%;margin-top:8px">申込者に送信する</button>
     </div>
   </div>
   </section>
@@ -299,7 +299,7 @@ a.sheet{font-size:13px;color:#1F4E79}
       <datalist id="next_presets"><option value="入会希望フォロー（当日中に1:1で返信）"><option value="1:1で返信（本文は人が書く）"><option value="面談の日程調整"><option value="例会・交流会に誘う"><option value="申請書類の案内"><option value="再連絡（本人と約束した時期）"><option value="御礼の連絡"></datalist>
       <label>期限</label><input id="cd_due" type="date">
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button type="button" onclick="saveDetail()" style="background:#3b6e9e;color:#fff;flex:2">保存</button>
+        <button type="button" onclick="saveDetail()" style="background:#0097D7;color:#fff;flex:2">保存</button>
         <button type="button" onclick="detailOp('assign')" class="b_att" style="flex:1">私が対応します</button>
         <button type="button" onclick="detailOp('done')" style="flex:1">対応済み</button>
       </div>
@@ -315,7 +315,7 @@ a.sheet{font-size:13px;color:#1F4E79}
       <label>メモ</label><input id="n_memo">
       <label>次にやること（任意。入れると要対応に載る）</label><input id="n_next" list="next_presets">
       <label style="font-weight:normal"><input type="checkbox" id="n_self" checked style="width:auto"> 自分を担当にする</label>
-      <button type="button" onclick="adminAddCase(false)" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">候補者を追加する</button>
+      <button type="button" onclick="adminAddCase(false)" style="background:#0097D7;color:#fff;width:100%;margin-top:8px">候補者を追加する</button>
     </div>
     <details id="cd_other" style="margin-top:10px"><summary style="font-weight:bold;padding:6px 0">その他（氏名・属性・会員化・引継ぎ・統合・削除）</summary>
       <div class="sub">
@@ -326,7 +326,7 @@ a.sheet{font-size:13px;color:#1F4E79}
         <label>年齢帯</label><select id="at_nenrei"><option value="">（選択）</option></select>
         <label>エリア</label><input id="at_area" placeholder="例: 沼津市">
         <label>関心</label><select id="at_kanshin"><option value="">（選択）</option></select>
-        <button type="button" onclick="saveOther()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">氏名・属性を保存</button>
+        <button type="button" onclick="saveOther()" style="background:#0097D7;color:#fff;width:100%;margin-top:8px">氏名・属性を保存</button>
         <div class="apl" id="cd_actions" style="margin-top:10px"></div>
       </div>
     </details>
@@ -339,7 +339,7 @@ a.sheet{font-size:13px;color:#1F4E79}
   <div class="sub">
     <div class="t" style="font-size:14px">会員全員に連絡する（委員会→会員。人数分の通数を使います）</div>
     <textarea id="a_mmsg" rows="3" placeholder="例: 10月の交流会に、お知り合いをぜひお誘いください。紹介文の転送は会員メニューから"></textarea>
-    <button type="button" onclick="adminMemberMessage()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">会員全員に送る</button>
+    <button type="button" onclick="adminMemberMessage()" style="background:#0097D7;color:#fff;width:100%;margin-top:8px">会員全員に送る</button>
   </div>
   </section>
   <section class="vw" data-v="stats">
@@ -351,7 +351,7 @@ a.sheet{font-size:13px;color:#1F4E79}
   <div class="hint">必要数は目標×6（候補者・面談）と面談÷面談化率（友だち）。率は実績で自動更新</div>
   <div class="sub">
     <label>今年度の目標（入会人数）</label>
-    <div style="display:flex;gap:8px"><input id="k_target" type="number" min="0" style="flex:1"><button type="button" onclick="saveKpi()" style="background:#3b6e9e;color:#fff">設定</button></div>
+    <div style="display:flex;gap:8px"><input id="k_target" type="number" min="0" style="flex:1"><button type="button" onclick="saveKpi()" style="background:#0097D7;color:#fff">設定</button></div>
   </div>
   <div id="a_kpi" class="hist"></div>
   </section>
@@ -1101,7 +1101,7 @@ function renderKpi(st){
     var wrap = el("div", ""); var p = b ? Math.min(100, Math.round(a / b * 100)) : 0;
     wrap.appendChild(el("div", "", label + " " + a + "／" + (b || "-") + (b ? "（" + p + "%）" : "")));
     var track = el("div", ""); track.style.cssText = "height:8px;background:#e6ecf2;border-radius:4px;overflow:hidden;margin:2px 0 8px";
-    var fill = el("div", ""); fill.style.cssText = "height:8px;width:" + p + "%;background:" + (p >= 100 ? "#2E7D32" : "#3b6e9e");
+    var fill = el("div", ""); fill.style.cssText = "height:8px;width:" + p + "%;background:" + (p >= 100 ? "#2E7D32" : "#0097D7");
     track.appendChild(fill); wrap.appendChild(track); return wrap;
   };
   if (k.target){
@@ -1118,7 +1118,7 @@ function renderKpi(st){
   box.appendChild(el("div", "t", "🏅 紹介実績（候補者／面談／入会）"));
   if (!(k.ranking || []).length) box.appendChild(el("div", "hint", "まだありません（申込の「ご紹介者」欄から集計）"));
   (k.ranking || []).slice(0, 3).forEach(function(r, i){ box.appendChild(el("div", "", (i + 1) + ". " + r.name + " " + r.count + "／" + r.meet + "／" + r.joined)); });
-  var more = document.createElement("details"); var sm = document.createElement("summary"); sm.textContent = "詳しく見る（ファネル・きっかけ別・QR別・有料化の目安）"; sm.style.cssText = "color:#1F4E79;padding:8px 0;cursor:pointer"; more.appendChild(sm);
+  var more = document.createElement("details"); var sm = document.createElement("summary"); sm.textContent = "詳しく見る（ファネル・きっかけ別・QR別・有料化の目安）"; sm.style.cssText = "color:#1F4789;padding:8px 0;cursor:pointer"; more.appendChild(sm);
   var fun = [["QR読み取り", k.reads, ""], ["未入会者の友だち", k.friends === null ? "-" : k.friends, ""], ["申込（人）", k.applied, pct(k.applied, k.friends)], ["参加", k.attended, pct(k.attended, k.applied)], ["入会希望", k.nyukai, ""], ["面談以上", k.meetingsAll != null ? k.meetingsAll : k.meetings, ""], ["入会", k.joinedAll != null ? k.joinedAll : k.joined, pct(k.joinedAll != null ? k.joinedAll : k.joined, k.meetingsAll != null ? k.meetingsAll : k.meetings)]];
   more.appendChild(el("div", "t", "🔻 ファネル（累計）"));
   fun.forEach(function(f){ more.appendChild(el("div", "", "・" + f[0] + ": " + f[1] + (f[2] ? "（" + f[2] + "）" : ""))); });
@@ -1205,7 +1205,7 @@ function textEditor(t){
   }
   var btns = el("div", ""); btns.style.cssText = "display:flex;gap:8px;margin-top:8px;flex-wrap:wrap";
   var mk = function(label, fn, style){ var b = el("button", "", label); b.onclick = fn; b.style.cssText = "flex:1;" + (style || ""); btns.appendChild(b); };
-  mk("保存", function(){ saveText(isNew ? "" : t.key); }, "background:#3b6e9e;color:#fff");
+  mk("保存", function(){ saveText(isNew ? "" : t.key); }, "background:#0097D7;color:#fff");
   mk("自分に送ってみる", function(){ testText(isNew ? "" : t.key); });
   if (group === "auto" && !isNew) mk("削除", function(){ deleteText(t.key); }, "background:#999;color:#fff");
   mk("閉じる", function(){ OPEN_TEXT_KEY = null; renderTexts(STATE); });
