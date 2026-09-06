@@ -187,7 +187,7 @@ a.sheet{font-size:13px;color:#1F4E79}
   </div>
   <section class="vw" data-v="todo">
   <h2 id="sec_todo">📌 要対応 <span id="todo_count" class="hint" style="font-weight:normal"></span></h2>
-  <div class="hint">今日やること。期限が今日か過ぎている人が上。「私が対応します」で担当になり本人へ即応の一言が届く。中身や段階の更新は「詳細」で</div>
+  <div class="hint">期限が今日か過ぎている人が上。「私が対応します」で担当を取り、中身の更新は「詳細」で</div>
   <div id="a_cases"></div>
   <details id="todo_future" style="display:none"><summary style="padding:6px 0" id="todo_future_sum">予定</summary><div id="a_cases_future"></div></details>
   </section>
@@ -196,9 +196,12 @@ a.sheet{font-size:13px;color:#1F4E79}
   <div class="panel">
     <div class="t">イベント登録・配信</div>
     <div id="ev_table"></div>
-    <label>既存イベントを読み込む（修正時）</label>
-    <select id="a_ev" onchange="adminLoad()"><option value="">（新規作成）</option></select>
-    <label style="font-weight:normal"><input type="checkbox" id="a_showold" style="width:auto" onchange="renderAdmin(STATE)"> 開催から3か月より前のイベントも表示</label>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
+      <button type="button" onclick="$('a_ev').value=''; adminLoad(); window.scrollTo({top: document.getElementById('a_name').offsetTop - 80, behavior: 'smooth'});" style="background:#3b6e9e;color:#fff;font-size:13px;padding:8px 12px">＋ 新しいイベント</button>
+      <span id="ev_editing" class="hint"></span>
+    </div>
+    <select id="a_ev" onchange="adminLoad()" style="display:none"><option value="">（新規作成）</option></select>
+    <label style="font-weight:normal"><input type="checkbox" id="a_showold" style="width:auto" onchange="renderAdmin(STATE)"> 過去のイベントも表示</label>
     <label>イベント名 ※必須</label><input id="a_name">
     <div class="hint">※保存後にイベント名を変えると別イベントとして新規作成されます（修正は他の項目で）</div>
     <label>開催日</label><input id="a_date" type="date">
@@ -208,7 +211,7 @@ a.sheet{font-size:13px;color:#1F4E79}
     <label>申込締切日（空欄=制限なし。開催日を入れると2日前を自動提案）</label><input id="a_deadline" type="date">
     <label>定員（空欄=制限なし）</label><input id="a_cap" type="number" min="1">
     <label>チラシ・画像（任意）</label><input id="a_img" type="file" accept="image/*">
-    <div class="hint">自動で縮小されます。配信カード・イベント案内に載ります</div>
+    <div class="hint">配信カードに載ります（自動で縮小）</div>
     <img id="a_prev">
     <label style="font-weight:normal"><input type="checkbox" id="a_active" checked style="width:auto"> 受付中（外すと案内・申込から消えます）</label>
     <details id="a_more" style="margin-top:10px"><summary style="font-size:13px;color:#1F4E79;padding:6px 0">詳しい設定（参加費・地図・予約配信・締切前リマインド・御礼・画像を外す・複製）</summary>
@@ -223,8 +226,7 @@ a.sheet{font-size:13px;color:#1F4E79}
     <div id="a_copywrap" style="display:none"><button type="button" class="b_sub" onclick="adminCopy()">このイベントを複製して新規作成</button></div>
     </details>
 
-    <div class="t" style="margin-top:16px">配信カードのプレビュー</div>
-    <div class="hint">実際のLINEでの見え方に近い表示です（画像は切れずに全体が表示されます）</div>
+    <details open style="margin-top:16px"><summary class="t" style="cursor:pointer">配信カードのプレビュー（LINEでの見え方）</summary>
     <div id="pv" class="card" style="margin-top:8px;border:1px solid #dde3ea">
       <img id="pv_img" style="display:none">
       <div class="cb">
@@ -238,6 +240,7 @@ a.sheet{font-size:13px;color:#1F4E79}
         <button class="join" disabled style="opacity:.85;background:#eee;color:#333;display:none" id="pv_map">地図を開く</button>
       </div>
     </div>
+    </details>
     <button id="a_save" onclick="adminSave('none')">保存する（配信はしない）</button>
     <button id="a_test" onclick="adminSave('test')">保存して、自分にだけテスト送信する</button>
     <button id="a_savebc" onclick="adminSave('all')">保存して、今すぐ全員に配信する</button>
@@ -247,19 +250,21 @@ a.sheet{font-size:13px;color:#1F4E79}
     <div class="t" id="apl_title">申込者一覧</div>
     <div id="apl_stats" class="hint"></div>
     <input id="apl_q" placeholder="名前・会社で絞る（当日の受付用）" oninput="renderApplicants()" style="margin:6px 0">
-    <div class="hint">当日の受付でチェック。「参加」にすると候補者リストの段階が自動で「3 イベント参加」になります</div>
+    <div class="hint">受付で「参加」に。候補者の段階も自動で進みます</div>
     <div id="apl_list"></div>
 
     <div class="sub">
-      <div class="t" style="font-size:14px">申込を手動で追加（電話・口頭での受付＝代理申込）</div>
+      <div class="t" style="font-size:14px">申込を手動で追加（電話・口頭・飛び込み＝代理申込）</div>
       <label>お名前 ※必須</label><input id="m_name">
-      <label>会社名・屋号</label><input id="m_company">
       <label>連絡先</label><input id="m_contact">
       <label>同伴人数</label><select id="m_dohan_count"><option value="0">0名</option><option value="1">1名</option><option value="2">2名</option><option value="3">3名</option><option value="4">4名</option><option value="5">5名</option></select>
-      <label>同伴者のお名前</label><input id="m_dohan">
+      <details style="margin-top:6px"><summary style="font-size:12px;color:#1F4E79;padding:4px 0">詳しく（会社・きっかけ・紹介者・同伴者名・メモ）</summary>
+      <label>会社名・屋号</label><input id="m_company">
       <label>きっかけ</label><select id="m_kikkake"><option value="">（選択）</option></select>
       <label>ご紹介者</label><input id="m_shokai" list="member_names">
+      <label>同伴者のお名前</label><input id="m_dohan">
       <label>メモ（受付した委員名など）</label><input id="m_memo">
+      </details>
       <button type="button" onclick="adminAddApply()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">この内容で申込を追加する</button>
     </div>
 
@@ -343,7 +348,7 @@ a.sheet{font-size:13px;color:#1F4E79}
   <div id="a_stats" class="hist"></div>
 
   <h2 id="sec_kpi">🎯 KPI（目標と進捗）</h2>
-  <div class="hint">設計案の逆算: 必要な候補者＝目標×6、必要な面談＝目標×6（6人に1人が入会）、必要な友だち＝面談÷面談化率（実績が無ければ20%）。率は実データで自動更新</div>
+  <div class="hint">必要数は目標×6（候補者・面談）と面談÷面談化率（友だち）。率は実績で自動更新</div>
   <div class="sub">
     <label>今年度の目標（入会人数）</label>
     <div style="display:flex;gap:8px"><input id="k_target" type="number" min="0" style="flex:1"><button type="button" onclick="saveKpi()" style="background:#3b6e9e;color:#fff">設定</button></div>
@@ -357,12 +362,12 @@ a.sheet{font-size:13px;color:#1F4E79}
   <button type="button" onclick="openText('')" style="margin-top:8px">＋ 自動応答を追加（言葉→返信）</button>
 
   <h2 id="sec_menu">🧭 メニュー</h2>
-  <div class="hint">画像を差し替えたあと（tools/make_richmenu.py で生成→GASに反映）に押すと、通常・管理者・会員の3種を作り直します</div>
+  <div class="hint">画像を差し替えたあとに押すと、通常・管理者・会員の3種を作り直します</div>
   <button type="button" onclick="rebuildMenus()">メニューを作り直す</button>
 
   <h2 id="sec_ref">📱 自分の紹介QR・紹介文</h2>
   <div class="panel">
-    <div class="hint">会場では画面のQRを見せて読み取ってもらう。友人には「紹介文をLINEで送る」で1タップ転送（QR名は「紹介_あなたの表示名」）</div>
+    <div class="hint">会場では画面のQRを見せる。友人には「紹介文をLINEで送る」</div>
     <button type="button" onclick="showMyQr('a_myqr')">自分のQRを表示</button>
     <button type="button" onclick="shareReferral()">紹介文をLINEで送る</button>
     <div id="a_myqr" style="display:none;text-align:center;margin-top:10px"></div>
@@ -1016,6 +1021,7 @@ function caseOp(id, op, value){
 // イベントの一覧表（行を押すと下の登録欄に読み込む）
 function renderEventTable(st){
   var box = $("ev_table"); if (!box) return; box.innerHTML = "";
+  var cur = $("a_ev").value; var ee = $("ev_editing"); if (ee) ee.textContent = cur ? "編集中: " + cur : "新規作成";
   var evs = sortedEvents(visibleEvents(st));
   if (!evs.length){ box.appendChild(el("div", "hint", "イベントはまだありません。下の欄で作成できます")); return; }
   var wide = window.innerWidth >= 900;
@@ -1108,21 +1114,21 @@ function renderKpi(st){
     box.appendChild(el("div", "hint", "目標が未設定です。理事会で決まるまで仮の値でも動きます"));
   }
   var pct = function(a, b){ return b ? Math.round(a / b * 100) + "%" : "-"; };
-  var fun = [["QR読み取り", k.reads, ""], ["未入会者の友だち", k.friends === null ? "-" : k.friends, ""], ["申込（人）", k.applied, pct(k.applied, k.friends)], ["参加", k.attended, pct(k.attended, k.applied)], ["入会希望", k.nyukai, ""], ["面談以上", k.meetingsAll != null ? k.meetingsAll : k.meetings, ""], ["入会", k.joinedAll != null ? k.joinedAll : k.joined, pct(k.joinedAll != null ? k.joinedAll : k.joined, k.meetingsAll != null ? k.meetingsAll : k.meetings)]];
   if (k.newMembers) box.appendChild(el("div", "", "🌱 " + (k.year || "今年") + "年の新会員 " + k.newMembers + "人、うち入会後にイベント参加 " + k.settled + "人"));
-  box.appendChild(el("div", "t", "🔻 ファネル（累計）"));
-  fun.forEach(function(f){ box.appendChild(el("div", "", "・" + f[0] + ": " + f[1] + (f[2] ? "（" + f[2] + "）" : ""))); });
   box.appendChild(el("div", "t", "🏅 紹介実績（候補者／面談／入会）"));
   if (!(k.ranking || []).length) box.appendChild(el("div", "hint", "まだありません（申込の「ご紹介者」欄から集計）"));
-  (k.ranking || []).forEach(function(r, i){ box.appendChild(el("div", "", (i + 1) + ". " + r.name + " " + r.count + "／" + r.meet + "／" + r.joined)); });
-  box.appendChild(el("div", "t", "🚪 きっかけ別（候補者／面談／入会）"));
-  (k.kikkake || []).forEach(function(r){ box.appendChild(el("div", "", "・" + r.name + " " + r.count + "／" + r.meet + "／" + r.joined)); });
+  (k.ranking || []).slice(0, 3).forEach(function(r, i){ box.appendChild(el("div", "", (i + 1) + ". " + r.name + " " + r.count + "／" + r.meet + "／" + r.joined)); });
+  var more = document.createElement("details"); var sm = document.createElement("summary"); sm.textContent = "詳しく見る（ファネル・きっかけ別・QR別・有料化の目安）"; sm.style.cssText = "color:#1F4E79;padding:8px 0;cursor:pointer"; more.appendChild(sm);
+  var fun = [["QR読み取り", k.reads, ""], ["未入会者の友だち", k.friends === null ? "-" : k.friends, ""], ["申込（人）", k.applied, pct(k.applied, k.friends)], ["参加", k.attended, pct(k.attended, k.applied)], ["入会希望", k.nyukai, ""], ["面談以上", k.meetingsAll != null ? k.meetingsAll : k.meetings, ""], ["入会", k.joinedAll != null ? k.joinedAll : k.joined, pct(k.joinedAll != null ? k.joinedAll : k.joined, k.meetingsAll != null ? k.meetingsAll : k.meetings)]];
+  more.appendChild(el("div", "t", "🔻 ファネル（累計）"));
+  fun.forEach(function(f){ more.appendChild(el("div", "", "・" + f[0] + ": " + f[1] + (f[2] ? "（" + f[2] + "）" : ""))); });
+  if ((k.ranking || []).length > 3){ more.appendChild(el("div", "t", "🏅 紹介実績（4位以下）")); (k.ranking || []).slice(3).forEach(function(r, i){ more.appendChild(el("div", "", (i + 4) + ". " + r.name + " " + r.count + "／" + r.meet + "／" + r.joined)); }); }
+  more.appendChild(el("div", "t", "🚪 きっかけ別（候補者／面談／入会）"));
+  (k.kikkake || []).forEach(function(r){ more.appendChild(el("div", "", "・" + r.name + " " + r.count + "／" + r.meet + "／" + r.joined)); });
   var en = st.entries || [];
-  if (en.length){
-    box.appendChild(el("div", "t", "🔗 QRごとの読み取り（今月／累計）"));
-    en.slice(0, 10).forEach(function(e){ box.appendChild(el("div", "", "・" + e.src + " " + e.month + "／" + e.total)); });
-  }
-  box.appendChild(el("div", "", k.paid || ""));
+  if (en.length){ more.appendChild(el("div", "t", "🔗 QRごとの読み取り（今月／累計）")); en.slice(0, 10).forEach(function(e){ more.appendChild(el("div", "", "・" + e.src + " " + e.month + "／" + e.total)); }); }
+  more.appendChild(el("div", "", k.paid || ""));
+  box.appendChild(more);
 }
 function saveKpi(){
   var v = $("k_target").value;
