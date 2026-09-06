@@ -209,11 +209,18 @@ a.sheet{font-size:13px;color:#1F4E79}
 </div>
 <div id="dbg" style="font-size:10px;color:#999;margin-top:20px;word-break:break-all"></div>
 </div>
+<script>
+// LINEの部品の読込を待たずに、イベント一覧だけの写し（個人情報なし）を先に取りに行く
+var WORKER = "https://jc-line-api.election-dashboard-2026.workers.dev";
+var PUBLIC_PROMISE = null;
+try {
+  if (WORKER && !/p(?:=|%3D)admin/.test(location.search)) PUBLIC_PROMISE = fetch(WORKER + "/public").then(function(r){ return r.json(); }).catch(function(){ return null; });
+} catch (e) {}
+</script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
 var LIFF_ID = "2011464754-qYbl2VQR";
 var API = "https://script.google.com/macros/s/AKfycbziKZweNT8sibVn54UrfNpQMsTxtxgBH1CqOtzLK_le7vdHdOj0eN9YbapdpG1twYMw/exec";
-var WORKER = "https://jc-line-api.election-dashboard-2026.workers.dev"; // 起動データの高速経路（Cloudflare Workers のURL。例 https://jc-line-api.xxxx.workers.dev）。空ならGASのみ
 
 var TOKEN = "", STATE = null, TARGET = "", MODE = "user", A_IMG = "", A_RATIO = "", COPY_FROM = "";
 var DBG = {};
@@ -226,10 +233,17 @@ window.addEventListener("unhandledrejection", function(ev){ say("Promiseエラ�
 function api(action, payload){
   return READY.then(function(){
   var body = Object.assign({ action: action, token: TOKEN }, payload || {});
-  return fetch(API, { method: "POST", body: JSON.stringify(body) })
-    .catch(function(){ throw new Error("通信に失敗しました。電波の良い場所でもう一度お試しください"); })
-    .then(function(r){ return r.json().catch(function(){ throw new Error("サーバーの応答が読めませんでした。少し待ってからもう一度お試しください"); }); })
-    .then(function(j){
+  var send = function(url){
+    return fetch(url, { method: "POST", body: JSON.stringify(body) })
+      .catch(function(){ throw new Error("通信に失敗しました。電波の良い場所でもう一度お試しください"); })
+      .then(function(r){ return r.json().catch(function(){ throw new Error("サーバーの応答が読めませんでした。少し待ってからもう一度お試しください"); }); });
+  };
+  // 申込・キャンセル・管理操作はWorkerが即時に受け付け、裏でGASへ渡す（配信などの結果はトークに届く）。Workerが使えないときはGASへ直接
+  var viaWorker = !!WORKER && (action === "liff_apply" || action === "liff_cancel" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap"));
+  var p = viaWorker
+    ? send(WORKER).then(function(j){ if (j && j.error && /no snapshot|worker/.test(j.error)) throw new Error("worker"); return j; }).catch(function(){ return send(API); })
+    : send(API);
+  return p.then(function(j){
       if (j && j.error){
         // 本人確認トークンの期限切れ → 操作を退避してログインし直し、再読込後に自動で続きを実行
         if (String(j.error).indexOf("本人確認に失敗") >= 0 && !sessionStorage.getItem("relogin")){
@@ -251,7 +265,7 @@ function api(action, payload){
 function cacheKey(mode){ return "jc_state_" + mode; }
 function cacheSave(st){
   try {
-    if (!st || !st.events) return;
+    if (!st || !st.events || st.publicOnly) return;
     var mode = st.stats ? "admin" : (st.myApplies ? "user" : "");
     if (!mode) return;
     var copy = Object.assign({}, st); delete copy.done; delete copy.message; delete copy.serverMs;
@@ -272,9 +286,11 @@ var TM = {};
 function showTiming(st){
   var s = function(ms){ return (ms / 1000).toFixed(1) + "秒"; };
   showDbg("読込 " + s(TM.sdk || 0) + " / 初期化 " + s((TM.init || 0) - (TM.sdk || 0)) + " / 本人確認〜表示 " + s((TM.boot || 0) - (TM.init || 0))
-    + (st && st.serverMs ? "（うちサーバー処理 " + s(st.serverMs) + "）" : "") + (st && st.fromEdge ? "（Cloudflare経由）" : "") + (FROM_CACHE ? " / 前回の画面を先に表示" : ""));
+    + (st && st.serverMs ? "（うちサーバー処理 " + s(st.serverMs) + "）" : "") + (st && st.fromEdge ? "（Cloudflare経由）" : "") + (FROM_CACHE ? " / 前回の画面を先に表示" : "") + (FROM_PUBLIC ? " / 案内を先に表示" : ""));
 }
 var FROM_CACHE = false;
+var FROM_PUBLIC = false; // 公開写しで先に案内を出した
+var FRESH = false;       // 本人分の最新データを表示済み
 // 本人確認が済むまでAPI呼び出しを待たせる（前回画面のボタンを早く押しても大丈夫なように）
 var READY_RESOLVE; var READY = new Promise(function(r){ READY_RESOLVE = r; });
 
@@ -335,7 +351,17 @@ function fastBootstrap(action){
   return READY.then(function(){
     return fetch(WORKER, { method: "POST", body: JSON.stringify({ action: action, token: TOKEN }), signal: ctrl ? ctrl.signal : undefined })
       .then(function(r){ return r.json(); })
-      .then(function(j){ if (!j || j.error) throw new Error((j && j.error) || "worker"); cacheSave(j); return j; });
+      .then(function(j){
+        if (!j || j.error) throw new Error((j && j.error) || "worker");
+        if (j.snapshotAt && Date.now() - new Date(j.snapshotAt).getTime() > 30 * 60 * 1000) throw new Error("stale"); // 写しの更新が止まっていたらGASから
+        // 書いた直後は写しの読み出しが最大60秒古いことがある → 手元の方が新しければ手元を使い、30秒後にもう一度取る
+        var loc = cacheLoad(MODE); var mine = loc && (loc.snapshotAt || loc.at); var theirs = j.snapshotAt || j.at;
+        if (mine && theirs && new Date(theirs).getTime() < new Date(mine).getTime()){
+          setTimeout(function(){ fastBootstrap(action).then(function(st){ if (MODE === "admin") renderAdmin(st); else render(st); }).catch(function(){}); }, 30000);
+          return loc;
+        }
+        cacheSave(j); return j;
+      });
   }).catch(function(){ return api(action); }).then(function(j){ if (timer) clearTimeout(timer); return j; });
 }
 
@@ -352,6 +378,14 @@ function boot(){
     say("前回の内容を表示しています。最新の情報を確認中…");
   } else {
     say("初期化中…");
+    if (MODE === "user" && PUBLIC_PROMISE){
+      PUBLIC_PROMISE.then(function(j){
+        if (!j || !j.events || FRESH || STATE) return;
+        FROM_PUBLIC = true;
+        render(j);
+        say("イベント案内を表示しました。本人確認中…");
+      });
+    }
   }
   liff.init({ liffId: LIFF_ID }).then(function(){
     TM.init = performance.now();
@@ -365,7 +399,7 @@ function boot(){
     try { sessionStorage.removeItem("relogin"); } catch (e) {}
     if (resumePending()) return;
     if (!cached) say("本人確認中…");
-    var done = function(fn){ return function(st){ TM.boot = performance.now(); fn(st); showTiming(st); }; };
+    var done = function(fn){ return function(st){ TM.boot = performance.now(); FRESH = true; fn(st); showTiming(st); }; };
     if (MODE === "admin"){
       $("hdr").textContent = "沼津JC 管理メニュー";
       $("user_ui").style.display = "none";
@@ -395,7 +429,7 @@ function render(st){
   var ev = $("events"); ev.innerHTML = "";
   st.events.forEach(function(e){
     var c = el("div", "card");
-    if (e.img){ var im = document.createElement("img"); im.src = e.img; c.appendChild(im); }
+    if (e.img){ var im = document.createElement("img"); im.loading = "lazy"; im.decoding = "async"; if (e.ratio) im.style.aspectRatio = e.ratio.replace(":", " / "); im.src = e.img; c.appendChild(im); }
     var b = el("div", "cb");
     b.appendChild(el("div", "t", e.name));
     b.appendChild(el("div", "m", "📅 " + e.date + " " + e.time));
@@ -512,7 +546,7 @@ function showDone(st){
   var lines = ["【" + dn.event + "】"];
   if (e){ lines.push("📅 " + e.date + " " + e.time, "📍 " + e.place); if (e.fee) lines.push("💰 参加費 " + e.fee); }
   if (my && my.dohanCount > 0) lines.push("👥 同伴 " + my.dohanCount + "名" + (my.dohan ? "（" + my.dohan + "）" : ""));
-  lines.push("", "確認メッセージをトークにお送りしました。変更・キャンセルはこの画面からいつでもできます。");
+  lines.push("", "確認メッセージがまもなくトークに届きます。変更・キャンセルはこの画面からいつでもできます。");
   $("done_body").textContent = lines.join("\n");
   var cal = $("done_cal");
   if (e && e.calUrl){ cal.href = e.calUrl; cal.style.display = "inline-block"; } else { cal.style.display = "none"; }
@@ -650,6 +684,7 @@ function renderAdmin(st){
   lines.push("📋 候補者リスト: " + total + "人");
   var en = st.entries || [];
   lines.push(en.length ? "🔗 QR読み取り（今月／累計）: " + en.slice(0, 8).map(function(e){ return e.src + " " + e.month + "／" + e.total; }).join("、") : "🔗 QR読み取り: まだありません");
+  if (st.worker) lines.push(st.worker);
   lines.push("🔑 管理者: " + (st.admins || []).map(function(a){ return a.name; }).join("、") + "（追加は「管理者招待」、自分を外すのは「管理者解除」）");
   $("a_stats").innerHTML = "";
   lines.forEach(function(t){ $("a_stats").appendChild(el("div", "", t)); });
@@ -690,6 +725,7 @@ function renderApplicants(){
 }
 
 function setAttend(ev, row, status){
+  if (!(row > 0)){ alert("台帳への記録待ちです。数秒後にもう一度お試しください"); return; }
   say("記録中…");
   api("liff_admin_attend", { ev: ev, row: row, status: status }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
 }
