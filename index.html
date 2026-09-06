@@ -301,24 +301,10 @@ a.sheet{font-size:13px;color:#1F4E79}
   <div id="a_kpi" class="hist"></div>
   </section>
   <section class="vw" data-v="texts">
-  <h2 id="sec_texts">✍️ 文面（自動応答・定型文）</h2>
-  <div class="hint">「自動応答する」の文面は、その言葉が送られてきたときに返します。それ以外は各場面で使う文面の置き場です。差し込み: {name}（相手の名前）{event} {date} {time} {place} {fee} {map} {liff}（申込ページ）{admin}（担当名）{info}（日時と場所）。「項目: 」だけになった行は自動で消えます</div>
+  <h2 id="sec_texts">✍️ 文面</h2>
+  <div class="hint">行を押すとその場で編集できます。保存すると次から新しい文面で送られます</div>
   <div id="a_texts"></div>
-  <div class="sub" id="text_form" style="display:none">
-    <div class="t" style="font-size:14px" id="text_form_title">文面を編集</div>
-    <label>名前（自動応答なら、相手が送る言葉）</label><input id="t_key">
-    <div class="hint" id="t_desc"></div>
-    <label>本文</label><textarea id="t_text" rows="6"></textarea>
-    <label style="font-weight:normal"><input type="checkbox" id="t_enabled" style="width:auto"> この言葉が送られたら自動で返す</label>
-    <label style="font-weight:normal"><input type="checkbox" id="t_notify" style="width:auto"> 送られたら委員に知らせる（重要通知の送り先へ）</label>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-      <button type="button" onclick="saveText()" style="background:#3b6e9e;color:#fff;flex:1">保存</button>
-      <button type="button" onclick="testText()" style="flex:1">自分に送ってみる</button>
-      <button type="button" onclick="deleteText($('t_key').value)" style="flex:1;background:#999;color:#fff">削除</button>
-      <button type="button" onclick="$('text_form').style.display='none'" style="flex:1">閉じる</button>
-    </div>
-  </div>
-  <button type="button" onclick="editText('')" style="margin-top:8px">＋ 文面を追加</button>
+  <button type="button" onclick="openText('')" style="margin-top:8px">＋ 自動応答を追加（言葉→返信）</button>
 
   <h2 id="sec_menu">🧭 メニュー</h2>
   <div class="hint">画像を差し替えたあと（tools/make_richmenu.py で生成→GASに反映）に押すと、通常・管理者・会員の3種を作り直します</div>
@@ -774,13 +760,16 @@ function copyText(text){
 
 // ---- 画面の切替（メニューの各ボタンは別々の画面として開く。タブで行き来できる） ----
 var VIEW_CUR = "";
+var KEEP_SCROLL = false;
 function showView(v){
+  var changed = VIEW_CUR !== v;
   VIEW_CUR = v;
   var secs = document.querySelectorAll("#admin_ui section.vw");
   for (var i = 0; i < secs.length; i++) secs[i].classList.toggle("on", secs[i].getAttribute("data-v") === v);
   var tabs = document.querySelectorAll("#tabs .tab");
   for (var j = 0; j < tabs.length; j++) tabs[j].classList.toggle("on", tabs[j].getAttribute("data-v") === v);
-  window.scrollTo({ top: 0 });
+  if (changed && !KEEP_SCROLL) window.scrollTo({ top: 0 });
+  KEEP_SCROLL = false;
 }
 
 // ---- 要対応（今日やること・最小カード） ----
@@ -1023,55 +1012,118 @@ function saveKpi(){
   api("liff_admin_kpi", { target: v }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
 }
 
-// ---- 文面（自動応答・定型文）----
-var TEXT_DESC = {
-  "友だち追加": "友だち追加の直後に届く（受付中イベントのカードが続く）", "即応": "「私が対応します」で本人に届く（{name}=担当名）",
-  "紹介文": "会員が友人に送る紹介文（末尾に本人専用リンクが付く）", "入会歓迎": "「会員にする」の瞬間に本人へ", "入会後アンケート": "入会45日後に本人へ（{liff}にフォームのリンク。無ければ末尾に付く）",
-  "委員会へ連絡": "会員メニュー「委員会へ連絡」への返答", "自由文の返答": "分類できないメッセージへの自動返信（委員には転送せず、チャットで対応）",
-  "申込確認の結び": "申込確認メッセージの最後の一言", "キャンセル確認": "キャンセル時に本人へ", "前日リマインド": "開催前日の朝に申込者へ（{info}=日時と場所）",
-  "定型_御礼": "申込者への連絡の定型文（御礼）", "定型_変更連絡": "定型文（変更連絡）", "定型_アンケート": "定型文（アンケート依頼）", "定型_当日案内": "定型文（当日案内）",
-  "入会希望": "自動応答（候補者リストへの登録と要対応はこの文面に関係なく行われる）", "JCとは": "自動応答", "問い合わせ": "自動応答"
+// ---- 文面（3つの群・その場で編集・見本つき） ----
+var TEXT_TITLE = {
+  "友だち追加": "友だち追加のあいさつ", "即応": "担当が付いたときの一言（本人へ）", "紹介文": "会員が友人に送る紹介文", "入会歓迎": "入会の歓迎",
+  "入会後アンケート": "入会後アンケートの案内", "委員会へ連絡": "「委員会へ連絡」への返答", "自由文の返答": "分類できないメッセージへの返答",
+  "申込確認の結び": "申込確認の結びの一言", "キャンセル確認": "キャンセル確認", "前日リマインド": "前日リマインド（申込者へ）",
+  "定型_御礼": "御礼", "定型_変更連絡": "変更連絡", "定型_アンケート": "アンケート依頼", "定型_当日案内": "当日案内"
 };
+var TEXT_DESC = {
+  "友だち追加": "友だち追加の直後に届く（受付中イベントのカードが続く）", "即応": "「私が対応します」で本人に届く。{name}は担当名",
+  "紹介文": "会員が友人に送る紹介文。末尾に本人専用のリンクが自動で付く", "入会歓迎": "「会員にする」の瞬間に本人へ",
+  "入会後アンケート": "入会45日後に本人へ。{liff}にフォームのリンク（無ければ末尾に付く）", "委員会へ連絡": "会員メニューの「委員会へ連絡」への返答",
+  "自由文の返答": "自動応答に当てはまらないメッセージへの返答（委員には転送せず、チャットで対応）",
+  "申込確認の結び": "申込確認メッセージの最後の一言", "キャンセル確認": "キャンセル時に本人へ", "前日リマインド": "開催前日の朝に申込者へ。{info}は日時と場所",
+  "定型_御礼": "申込者への連絡で「御礼」を押したときの文", "定型_変更連絡": "「変更連絡」を押したときの文", "定型_アンケート": "「アンケート」を押したときの文", "定型_当日案内": "「当日案内」を押したときの文",
+  "入会希望": "この言葉が送られると返す。候補者リストへの登録と要対応はこの文面と関係なく行われる", "JCとは": "この言葉が送られると返す", "問い合わせ": "この言葉が送られると返す"
+};
+var SCENE_KEYS = ["友だち追加", "即応", "紹介文", "入会歓迎", "入会後アンケート", "委員会へ連絡", "自由文の返答", "申込確認の結び", "キャンセル確認", "前日リマインド"];
+var PLACEHOLDERS = [["{name}", "相手の名前"], ["{event}", "イベント名"], ["{date}", "開催日"], ["{time}", "時間"], ["{place}", "場所"], ["{fee}", "参加費"], ["{map}", "地図"], ["{liff}", "申込ページ"], ["{admin}", "担当名"], ["{info}", "日時と場所"]];
+var OPEN_TEXT_KEY = null;
 function textByKey(key){ return (STATE && STATE.texts || []).filter(function(t){ return t.key === key; })[0]; }
+function textGroup(t){ if (t.key.indexOf("定型_") === 0) return "preset"; if (SCENE_KEYS.indexOf(t.key) >= 0) return "scene"; return "auto"; }
+function sampleCtx(){
+  return { name: "山田太郎", admin: myName() || "（担当名）", event: "10月交流会", date: "10月15日（木）", time: "19:00〜21:00", place: "沼津市内の会場", fee: "3,000円", map: "https://maps.app.goo.gl/xxxx", liff: "https://liff.line.me/…（申込ページ）", info: "📅 10月15日（木） 19:00〜21:00\n📍 沼津市内の会場" };
+}
 function renderTexts(st){
   var box = $("a_texts"); if (!box) return; box.innerHTML = "";
   var list = st.texts || [];
-  if (!list.length){ box.appendChild(el("div", "hint", "文面がありません")); return; }
-  list.forEach(function(t){
-    var row = el("div", "apl");
-    var nm = el("div", "nm", t.key + (t.enabled ? "　🔁自動応答" : "") + (t.notify ? "　📣委員に通知" : ""));
-    nm.appendChild(el("small", "", (TEXT_DESC[t.key] ? TEXT_DESC[t.key] + " ／ " : "") + t.text.replace(/\n/g, " ").slice(0, 40)));
-    row.appendChild(nm);
-    var b = el("button", "", "編集"); b.onclick = function(){ editText(t.key); }; row.appendChild(b);
-    box.appendChild(row);
+  var groups = [["auto", "🔁 自動応答（この言葉が送られると返す）"], ["scene", "📨 場面ごとの文面（仕組みが自動で送る）"], ["preset", "📝 申込者への連絡の定型文（ボタンで挿入）"]];
+  groups.forEach(function(g){
+    var items = list.filter(function(t){ return textGroup(t) === g[0]; });
+    if (!items.length && g[0] !== "auto") return;
+    box.appendChild(el("div", "t", g[1]));
+    if (!items.length) box.appendChild(el("div", "hint", "まだありません"));
+    items.forEach(function(t){
+      var row = el("div", "apl"); row.style.cursor = "pointer"; row.style.flexWrap = "wrap";
+      var nm = el("div", "nm", (TEXT_TITLE[t.key] || t.key) + (g[0] === "auto" ? "　「" + t.key + "」" + (t.enabled ? "" : "（停止中）") + (t.notify ? "　📣委員に通知" : "") : ""));
+      nm.appendChild(el("small", "", t.text.replace(/\n/g, " ").slice(0, 44)));
+      row.appendChild(nm); row.appendChild(el("span", "", OPEN_TEXT_KEY === t.key ? "▾" : "›"));
+      row.onclick = function(){ openText(t.key); };
+      box.appendChild(row);
+      if (OPEN_TEXT_KEY === t.key) box.appendChild(textEditor(t));
+    });
   });
+  if (OPEN_TEXT_KEY === "") box.appendChild(textEditor(null));
 }
-function editText(key){
-  var t = textByKey(key);
-  $("text_form_title").textContent = t ? "文面を編集: " + key : "文面を追加";
-  $("t_key").value = t ? t.key : ""; $("t_key").readOnly = !!t;
-  $("t_desc").textContent = TEXT_DESC[key] || "";
-  $("t_text").value = t ? t.text : ""; $("t_enabled").checked = t ? t.enabled : true; $("t_notify").checked = t ? t.notify : false;
-  $("text_form").style.display = "block";
-  $("text_form").scrollIntoView({ behavior: "smooth", block: "start" });
+function textEditor(t){
+  var isNew = !t;
+  var wrap = el("div", "sub"); wrap.id = "text_editor";
+  wrap.appendChild(el("div", "t", isNew ? "自動応答を追加" : (TEXT_TITLE[t.key] || t.key)));
+  if (!isNew && TEXT_DESC[t.key]) wrap.appendChild(el("div", "hint", TEXT_DESC[t.key]));
+  if (isNew){ wrap.appendChild(el("label", "", "相手が送る言葉（完全一致）")); var k = document.createElement("input"); k.id = "t_key"; k.placeholder = "例: 会費"; wrap.appendChild(k); }
+  wrap.appendChild(el("label", "", "本文"));
+  var ta = document.createElement("textarea"); ta.id = "t_text"; ta.rows = 9; ta.value = isNew ? "" : t.text; ta.style.fontSize = "15px"; ta.style.lineHeight = "1.5";
+  ta.oninput = function(){ updatePreview(); };
+  wrap.appendChild(ta);
+  var chips = el("div", "apl"); chips.style.flexWrap = "wrap"; chips.style.marginTop = "6px";
+  chips.appendChild(el("small", "", "差し込み: "));
+  PLACEHOLDERS.forEach(function(p){ var b = el("button", "", p[1]); b.title = p[0]; b.style.fontSize = "11px"; b.onclick = function(){ insertAtCursor(ta, p[0]); }; chips.appendChild(b); });
+  wrap.appendChild(chips);
+  wrap.appendChild(el("div", "hint", "見本（差し込みは例の値）:"));
+  var pv = el("div", ""); pv.id = "t_preview"; pv.style.cssText = "white-space:pre-wrap;background:#f3f6f9;border-radius:8px;padding:10px;font-size:14px;margin:4px 0 8px";
+  wrap.appendChild(pv);
+  var group = isNew ? "auto" : textGroup(t);
+  if (group === "auto"){
+    var l1 = el("label", ""); l1.style.fontWeight = "normal"; var c1 = document.createElement("input"); c1.type = "checkbox"; c1.id = "t_enabled"; c1.style.width = "auto"; c1.checked = isNew ? true : t.enabled; l1.appendChild(c1); l1.appendChild(document.createTextNode(" この言葉が送られたら自動で返す")); wrap.appendChild(l1);
+    var l2 = el("label", ""); l2.style.fontWeight = "normal"; var c2 = document.createElement("input"); c2.type = "checkbox"; c2.id = "t_notify"; c2.style.width = "auto"; c2.checked = isNew ? false : t.notify; l2.appendChild(c2); l2.appendChild(document.createTextNode(" 送られたら委員に知らせる（重要通知の送り先へ）")); wrap.appendChild(l2);
+  }
+  var btns = el("div", ""); btns.style.cssText = "display:flex;gap:8px;margin-top:8px;flex-wrap:wrap";
+  var mk = function(label, fn, style){ var b = el("button", "", label); b.onclick = fn; b.style.cssText = "flex:1;" + (style || ""); btns.appendChild(b); };
+  mk("保存", function(){ saveText(isNew ? "" : t.key); }, "background:#3b6e9e;color:#fff");
+  mk("自分に送ってみる", function(){ testText(isNew ? "" : t.key); });
+  if (group === "auto" && !isNew) mk("削除", function(){ deleteText(t.key); }, "background:#999;color:#fff");
+  mk("閉じる", function(){ OPEN_TEXT_KEY = null; renderTexts(STATE); });
+  wrap.appendChild(btns);
+  setTimeout(updatePreview, 0);
+  return wrap;
 }
-function textData(op){ return { op: op, key: $("t_key").value.trim(), text: $("t_text").value, enabled: $("t_enabled").checked, notify: $("t_notify").checked }; }
-function saveText(){
-  var d = textData("set");
-  if (!d.key){ alert("名前を入力してください"); return; }
+function updatePreview(){ var ta = $("t_text"), pv = $("t_preview"); if (ta && pv) pv.textContent = fillTplClient(ta.value, sampleCtx()) || "（本文が空です）"; }
+function insertAtCursor(ta, text){
+  var s = ta.selectionStart || 0, e = ta.selectionEnd || 0;
+  ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+  ta.selectionStart = ta.selectionEnd = s + text.length; ta.focus(); updatePreview();
+}
+function openText(key){
+  OPEN_TEXT_KEY = key;
+  renderTexts(STATE);
+  var ed = $("text_editor"); if (ed) setTimeout(function(){ ed.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, 50);
+}
+function textData(op, key){
+  var t = key ? textByKey(key) : null;
+  var isNew = !t;
+  return { op: op, key: isNew ? ($("t_key") ? $("t_key").value.trim() : "") : t.key, text: $("t_text").value,
+           enabled: $("t_enabled") ? $("t_enabled").checked : (t ? t.enabled : false), notify: $("t_notify") ? $("t_notify").checked : (t ? t.notify : false) };
+}
+function saveText(key){
+  var d = textData("set", key);
+  if (!d.key){ alert("相手が送る言葉を入力してください"); return; }
   if (!d.text.trim()){ alert("本文を入力してください"); return; }
-  say("保存中…");
-  api("liff_admin_text", { data: d }).then(function(st){ $("text_form").style.display = "none"; renderAdmin(st); }).catch(function(e){ say("エラー: " + e.message); });
+  KEEP_SCROLL = true; say("保存中…");
+  api("liff_admin_text", { data: d }).then(function(st){ OPEN_TEXT_KEY = d.key; renderAdmin(st); }).catch(function(e){ say("エラー: " + e.message); });
 }
-function testText(){
-  var d = textData("test");
+function testText(key){
+  var d = textData("test", key);
   if (!d.text.trim()){ alert("本文を入力してください"); return; }
-  say("送信中…");
-  api("liff_admin_text", { data: d }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
+  KEEP_SCROLL = true; say("送信中…");
+  var text = d.text;
+  api("liff_admin_text", { data: d }).then(function(st){ renderAdmin(st); var ta = $("t_text"); if (ta) { ta.value = text; updatePreview(); } }).catch(function(e){ say("エラー: " + e.message); });
 }
 function deleteText(key){
-  if (!confirm("文面「" + key + "」を削除しますか？（既定の文面がある項目は、削除すると既定に戻ります）")) return;
-  api("liff_admin_text", { data: { op: "delete", key: key } }).then(function(st){ $("text_form").style.display = "none"; renderAdmin(st); }).catch(function(e){ say("エラー: " + e.message); });
+  if (!confirm("「" + key + "」を削除しますか？")) return;
+  KEEP_SCROLL = true;
+  api("liff_admin_text", { data: { op: "delete", key: key } }).then(function(st){ OPEN_TEXT_KEY = null; renderAdmin(st); }).catch(function(e){ say("エラー: " + e.message); });
 }
 function rebuildMenus(){
   if (!confirm("通常・管理者・会員の3種のメニューを作り直します（1分ほど）。よろしいですか？")) return;
@@ -1155,6 +1207,7 @@ function sortedEvents(evs){
 }
 
 function renderAdmin(st){
+  var keepY = window.scrollY;
   STATE = st;
   $("user_ui").style.display = "none";
   $("admin_ui").style.display = "block";
@@ -1205,6 +1258,7 @@ function renderAdmin(st){
     VIEW_CUR = { cases: "todo", kpi: "stats", event: "event", texts: "texts", members: "members", todo: "todo", stats: "stats" }[VIEW] || "todo";
   }
   showView(VIEW_CUR);
+  if (keepY) setTimeout(function(){ window.scrollTo({ top: keepY }); }, 0);
   updatePreview();
   $("a_copywrap").style.display = $("a_ev").value ? "block" : "none";
 }
