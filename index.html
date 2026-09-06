@@ -59,7 +59,7 @@ a.sheet{font-size:13px;color:#1F4E79}
 /* ---- PC（幅900px以上）: 左に画面の切替、右に内容。イベントは2列、詳細は右の引き出し ---- */
 @media (min-width: 900px) {
   body{font-size:15px}
-  #wrap{max-width:1180px;padding:16px 24px}
+  body.admin #wrap{max-width:1180px;padding:16px 24px}
   #admin_ui{display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:start}
   #admin_ui #tabs{position:sticky;top:12px;flex-direction:column;gap:6px;margin:0}
   #admin_ui #tabs .tab{text-align:left;padding:10px 12px;font-size:14px}
@@ -1200,6 +1200,18 @@ document.addEventListener("keydown", function(ev){
 });
 window.addEventListener("resize", function(){ if (STATE && STATE.all && MODE === "admin") renderAll(); });
 
+// PCで開きっぱなしでも最新に: 5分ごと（タブが見えているときだけ）。詳細や文面の編集中は次の機会に
+var AUTO_REFRESH_MS = 5 * 60 * 1000;
+function autoRefresh(){
+  if (MODE !== "admin" || !STATE || document.hidden) return;
+  if ((DETAIL_ID !== null && DETAIL_ID !== undefined && $("case_detail").style.display !== "none") || OPEN_TEXT_KEY !== null) return;
+  if (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+  KEEP_SCROLL = true;
+  fastBootstrap("liff_admin_bootstrap").then(function(st){ renderAdmin(st); say("最新の情報に更新しました（" + new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }) + "）"); }).catch(function(){});
+}
+setInterval(autoRefresh, AUTO_REFRESH_MS);
+document.addEventListener("visibilitychange", function(){ if (!document.hidden && MODE === "admin" && STATE) autoRefresh(); });
+
 function closeLiff(){
   try { liff.closeWindow(); } catch (e) { $("done").style.display = "none"; }
 }
@@ -1272,6 +1284,8 @@ function sortedEvents(evs){
 function renderAdmin(st){
   var keepY = window.scrollY;
   STATE = st;
+  document.body.classList.add("admin");
+  document.title = "管理画面 - 沼津JC公式LINE";
   $("user_ui").style.display = "none";
   $("admin_ui").style.display = "block";
   showDbg("admin panel rendered");
