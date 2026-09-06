@@ -84,8 +84,10 @@ a.sheet{font-size:13px;color:var(--navy)}
   table.roster td{padding:8px 10px;border-top:1px solid #eee;vertical-align:top}
   table.roster tr.row:hover{background:#f3f6f9;cursor:pointer}
 }
+.print-only{display:none}
 @media print {
   header, #tabs, button, #msg, #dbg, .hint { display: none !important; }
+  .print-only{display:block;font-weight:bold;font-size:16px;margin:0 0 8px}
   #admin_ui{display:block}
   .vw.on{display:block}
   body{background:#fff}
@@ -346,7 +348,8 @@ a.sheet{font-size:13px;color:var(--navy)}
   </div>
   </section>
   <section class="vw" data-v="stats">
-  <h2 id="sec_stats">📊 状況 <button type="button" onclick="refreshAdmin()" style="font-size:12px;padding:4px 8px;margin-left:8px">最新に更新</button></h2>
+  <div class="print-only" id="print_head"></div>
+  <h2 id="sec_stats">📊 状況 <button type="button" onclick="refreshAdmin()" style="font-size:12px;padding:4px 8px;margin-left:8px">最新に更新</button> <button type="button" onclick="window.print()" style="font-size:12px;padding:4px 8px" title="理事会・委員会向けに1枚で印刷">印刷する</button></h2>
   <div class="hint">シートを直接直した直後は、表示が最大10分古いことがあります。「最新に更新」でその場で取り直します</div>
   <div id="a_stats" class="hist"></div>
 
@@ -602,6 +605,13 @@ function switchToAdmin(){
   fastBootstrap("liff_admin_bootstrap").then(renderAdmin).catch(bootFail);
 }
 
+// イベントを友だちに転送（LINE内なら送り先を選ぶ画面、外のブラウザなら LINE の共有URL）
+function shareEvent(e){
+  var text = "【沼津JC】" + e.date + " " + e.name + (e.place ? "\n📍 " + e.place : "") + (e.liff ? "\n申込はこちら: " + e.liff : "");
+  if (window.liff && liff.isApiAvailable && liff.isApiAvailable("shareTargetPicker")) liff.shareTargetPicker([{ type: "text", text: text }]).catch(function(){});
+  else window.open("https://line.me/R/share?text=" + encodeURIComponent(text), "_blank");
+}
+
 function render(st){
   STATE = st;
   $("user_ui").style.display = "block";
@@ -622,6 +632,7 @@ function render(st){
     if (e.remaining !== null && e.remaining !== undefined && e.open) b.appendChild(el("div", "m", "🪑 残り" + e.remaining + "席"));
     b.appendChild(el("div", "m", e.desc));
     if (e.mapUrl){ var a = el("a", "mapbtn", "📍 地図を開く"); a.href = e.mapUrl; a.target = "_blank"; a.rel = "noopener"; b.appendChild(a); }
+    if (e.open){ var shb = el("a", "mapbtn", "📤 友だちに知らせる"); shb.href = "#"; if (e.mapUrl) shb.style.marginLeft = "14px"; shb.onclick = function(ev){ ev.preventDefault(); shareEvent(e); }; b.appendChild(shb); }
     if (e.applied){
       b.appendChild(el("span", "chip ok", "申込済み ✓"));
       if (e.calUrl){ var ca = el("a", "mapbtn", "📆 カレンダーに追加"); ca.href = e.calUrl; ca.target = "_blank"; ca.rel = "noopener"; b.appendChild(ca); }
@@ -1121,6 +1132,7 @@ function adminMemberMessage(){
 
 // ---- KPI ----
 function renderKpi(st){
+  var ph = $("print_head"); if (ph) ph.textContent = "沼津JC 会員拡大 状況レポート " + new Date().toLocaleDateString("ja-JP") + (st.kpi && st.kpi.target ? "（今年の入会目標 " + st.kpi.target + "人）" : "");
   var box = $("a_kpi"); if (!box) return; box.innerHTML = "";
   var k = st.kpi; if (!k) return;
   if ($("k_target") && document.activeElement !== $("k_target")) $("k_target").value = k.target || "";
