@@ -14,12 +14,13 @@ header{background:#1F4E79;color:#fff;padding:14px 16px;font-size:16px;font-weigh
 .cb{padding:12px}
 .t{font-weight:bold;font-size:16px;margin-bottom:4px}
 .m{font-size:13px;color:#555;margin-bottom:2px}
-.chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;margin-top:6px}
+.chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;margin-top:6px;margin-right:6px}
 .ok{background:#E8F5E9;color:#2E7D32}
 .ng{background:#eee;color:#777}
 button{border:0;border-radius:8px;font-size:14px;font-weight:bold;padding:10px 14px}
 .join{background:#1F4E79;color:#fff;width:100%;margin-top:8px}
 .cancel{background:none;color:#C0392B;font-size:12px;padding:6px 0;text-decoration:underline}
+.mapbtn{display:inline-block;margin-top:8px;font-size:13px;color:#1F4E79;text-decoration:underline}
 label{display:block;font-size:12px;font-weight:bold;margin:8px 0 2px}
 input,select,textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #bbb;border-radius:6px;font-size:14px}
 textarea{height:72px}
@@ -27,12 +28,27 @@ textarea{height:72px}
 .panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
 #send,#a_savebc{background:#C0392B;color:#fff;width:100%;margin-top:12px}
 #a_save{background:#1F4E79;color:#fff;width:100%;margin-top:12px}
+#a_test{background:#3b6e9e;color:#fff;width:100%;margin-top:12px}
 h2{font-size:14px;color:#1F4E79;margin:16px 0 8px}
 #msg{font-size:13px;color:#1F4E79;padding:8px 0;white-space:pre-wrap}
-.hist{font-size:13px;background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px}
+.hist{font-size:13px;background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px;line-height:1.6}
 .hint{font-size:11px;color:#777;margin-top:2px}
 #a_prev{display:none;max-width:100%;border-radius:8px;margin-top:8px}
 a.sheet{font-size:13px;color:#1F4E79}
+.apl{display:flex;justify-content:space-between;align-items:center;gap:6px;border-bottom:1px solid #eee;padding:8px 0;font-size:13px}
+.apl .nm{flex:1;min-width:0}
+.apl .nm small{color:#777;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.apl button{font-size:11px;padding:6px 8px;border-radius:6px}
+.b_att{background:#2E7D32;color:#fff}
+.b_abs{background:#999;color:#fff}
+.b_clr{background:#eee;color:#333}
+.b_sub{background:#eee;color:#1F4E79;font-size:12px;padding:6px 10px;margin:4px 4px 0 0}
+.tag{font-size:11px;padding:2px 6px;border-radius:8px;background:#eee;color:#555;white-space:nowrap}
+.tag.att{background:#E8F5E9;color:#2E7D32}
+.tag.abs{background:#eee;color:#777}
+.tag.cxl{background:#FFEBEE;color:#C62828}
+.tag.man{background:#FFF3E0;color:#E65100}
+.sub{border-top:1px dashed #ddd;margin-top:14px;padding-top:10px}
 </style>
 </head>
 <body>
@@ -43,64 +59,203 @@ a.sheet{font-size:13px;color:#1F4E79}
 <div id="user_ui">
   <div id="adminlink" style="display:none;margin-bottom:10px"><button class="join" style="background:#16283c" onclick="switchToAdmin()">▶ 管理画面を開く（管理者のみ表示）</button></div>
   <div id="events"></div>
+  <div id="done" class="panel" style="display:none;border:2px solid #2E7D32">
+    <div class="t" id="done_title" style="color:#2E7D32"></div>
+    <div class="m" id="done_body" style="white-space:pre-wrap;margin-top:6px"></div>
+    <a id="done_cal" class="mapbtn" target="_blank" rel="noopener" style="display:none">📆 Googleカレンダーに追加</a>
+    <button class="join" onclick="closeLiff()">LINEに戻る</button>
+    <button class="cancel" onclick="document.getElementById('done').style.display='none'">この画面を閉じる</button>
+  </div>
   <div id="formbox" class="panel">
     <div class="t" id="ftitle"></div>
-    <label>お名前 ※必須</label><input id="f_name">
-    <label>会社名・屋号</label><input id="f_company">
-    <label>業種</label><select id="f_gyoshu"><option value="">（選択）</option></select>
-    <label>連絡先（電話またはメール）※必須</label><input id="f_contact">
-    <label>このイベントを知ったきっかけ</label><select id="f_kikkake"><option value="">（選択）</option></select>
-    <label>ご紹介者（いれば）</label><input id="f_shokai">
-    <label>同伴者（いれば人数・お名前）</label><input id="f_dohan">
-    <label>ひとことメモ（任意）</label><input id="f_memo">
-    <label style="font-weight:normal"><input type="checkbox" id="f_doui" style="width:auto"> 記入内容をイベント運営・今後のご案内の目的で沼津JC会員拡大委員会が利用することに同意します</label>
-    <button id="send" onclick="sendApply()">この内容で申し込む</button>
+    <div class="m" id="ffee"></div>
+    <div id="quick" style="display:none">
+      <div class="hist" style="margin-top:8px">前回の内容で申し込みます：<br><b id="q_summary"></b></div>
+      <label>同伴人数</label>
+      <select id="q_dohan_count"><option value="0">0名（ご本人のみ）</option><option value="1">1名</option><option value="2">2名</option><option value="3">3名</option><option value="4">4名</option><option value="5">5名</option></select>
+      <label>同伴者のお名前（任意）</label><input id="q_dohan">
+      <label>ひとことメモ（任意）</label><input id="q_memo">
+      <label style="font-weight:normal"><input type="checkbox" id="q_doui" style="width:auto"> 個人情報の取り扱いに同意します（下の「取り扱いについて」参照）</label>
+      <button id="q_send" class="join" onclick="sendApply(true)">この内容で申し込む</button>
+      <button class="cancel" onclick="showFull()">氏名・連絡先などを修正して申し込む</button>
+    </div>
+    <div id="full">
+      <label>お名前 ※必須</label><input id="f_name">
+      <label>会社名・屋号</label><input id="f_company">
+      <label>業種</label><select id="f_gyoshu"><option value="">（選択）</option></select>
+      <label>連絡先（電話またはメール）※必須</label><input id="f_contact" placeholder="090-0000-0000 または メールアドレス">
+      <label>このイベントを知ったきっかけ</label><select id="f_kikkake"><option value="">（選択）</option></select>
+      <label>ご紹介者（いれば）</label><input id="f_shokai">
+      <label>同伴人数</label>
+      <select id="f_dohan_count"><option value="0">0名（ご本人のみ）</option><option value="1">1名</option><option value="2">2名</option><option value="3">3名</option><option value="4">4名</option><option value="5">5名</option></select>
+      <label>同伴者のお名前（任意）</label><input id="f_dohan">
+      <label>ひとことメモ（任意）</label><input id="f_memo">
+      <label style="font-weight:normal"><input type="checkbox" id="f_doui" style="width:auto"> 個人情報の取り扱いに同意します（下の「取り扱いについて」参照）</label>
+      <button id="send" onclick="sendApply(false)">この内容で申し込む</button>
+    </div>
+    <details id="policy" style="margin-top:12px;font-size:12px;color:#555">
+      <summary>個人情報の取り扱いについて（v1・2026-09-06）</summary>
+      <div style="margin-top:6px;line-height:1.7">
+        ・取得する項目：氏名、会社名・屋号、業種、連絡先、きっかけ、紹介者、同伴者<br>
+        ・利用目的：イベントの運営と参加確認、次回イベントや入会に関するご案内<br>
+        ・管理：沼津青年会議所 会員拡大委員会（委員長・副委員長が管理）<br>
+        ・保持期間：最後のご連絡から2年を目安に削除（案・確定次第更新）<br>
+        ・第三者提供：ご本人の同意なく行いません<br>
+        ・お問い合わせ・削除のご希望：この公式LINEにメッセージをお送りください
+      </div>
+    </details>
   </div>
   <h2>あなたの申込状況</h2><div id="hist"></div>
+  <div class="panel" style="margin-top:16px">
+    <h2>この公式LINEを友だちに紹介する</h2>
+    <div class="hint">あなた専用のリンク・QRです。誰の紹介で登録されたかが分かります</div>
+    <button type="button" onclick="shareReferral()">紹介文をLINEで送る</button>
+    <button type="button" onclick="showMyQr('myqr')">自分のQRを表示</button>
+    <div id="myqr" style="display:none;text-align:center;margin-top:10px"></div>
+  </div>
 </div>
-<div id="dbg" style="font-size:10px;color:#999;margin-top:20px;word-break:break-all"></div>
 
 <div id="admin_ui">
   <div class="panel">
     <div class="t">イベント登録・配信</div>
     <label>既存イベントを読み込む（修正時）</label>
     <select id="a_ev" onchange="adminLoad()"><option value="">（新規作成）</option></select>
+    <div id="a_copywrap" style="display:none"><button type="button" class="b_sub" onclick="adminCopy()">このイベントを複製して新規作成</button></div>
     <label>イベント名 ※必須</label><input id="a_name">
+    <div class="hint">※保存後にイベント名を変えると別イベントとして新規作成されます（修正は他の項目で）</div>
     <label>開催日</label><input id="a_date" type="date">
     <label>時間</label><input id="a_time" placeholder="19:00〜21:00">
     <label>場所</label><input id="a_place">
+    <label>地図URL（Googleマップの共有リンク・任意）</label><input id="a_map" placeholder="https://maps.app.goo.gl/...">
+    <label>参加費（任意）</label><input id="a_fee" placeholder="3,000円（当日現金）">
     <label>案内文</label><textarea id="a_desc"></textarea>
-    <label>申込締切日（空欄=制限なし）</label><input id="a_deadline" type="date">
+    <label>申込締切日（空欄=制限なし。開催日を入れると2日前を自動提案）</label><input id="a_deadline" type="date">
+    <label style="font-weight:normal"><input type="checkbox" id="a_dlremind" style="width:auto"> 締切2日前の朝9時に「まだ間に合います」を全員に自動配信する（通数を1本使います）</label>
     <label>定員（空欄=制限なし）</label><input id="a_cap" type="number" min="1">
     <label>チラシ・画像（任意）</label><input id="a_img" type="file" accept="image/*">
     <div class="hint">自動で縮小されます。配信カード・イベント案内に載ります</div>
     <img id="a_prev">
+    <label style="font-weight:normal"><input type="checkbox" id="a_rmimg" style="width:auto" onchange="updatePreview()"> 画像なしにする（登録済みの画像を外す）</label>
+    <label>予約配信（日時を入れて保存すると、その時刻に自動で全員配信）</label>
+    <div style="display:flex;gap:6px"><input id="a_sched" type="datetime-local" style="flex:1"><button type="button" class="b_clr" onclick="document.getElementById('a_sched').value='';" style="white-space:nowrap">取消</button></div>
+    <div class="hint">※10分おきにチェックして送信します。「今すぐ全員に配信」すると予約は解除されます</div>
     <label style="font-weight:normal"><input type="checkbox" id="a_active" checked style="width:auto"> 受付中（外すと案内・申込から消えます）</label>
-    <button id="a_save" onclick="adminSave(false)">保存する（配信はしない）</button>
-    <button id="a_savebc" onclick="adminSave(true)">保存して、今すぐ全員に配信する</button>
+
+    <div class="t" style="margin-top:16px">配信カードのプレビュー</div>
+    <div class="hint">実際のLINEでの見え方に近い表示です（画像は切れずに全体が表示されます）</div>
+    <div id="pv" class="card" style="margin-top:8px;border:1px solid #dde3ea">
+      <img id="pv_img" style="display:none">
+      <div class="cb">
+        <div class="t" id="pv_name">（イベント名）</div>
+        <div class="m" id="pv_date">📅 </div>
+        <div class="m" id="pv_place">📍 </div>
+        <div class="m" id="pv_fee" style="display:none"></div>
+        <div class="m" id="pv_rem" style="display:none"></div>
+        <div class="m" id="pv_desc" style="white-space:pre-wrap"></div>
+        <button class="join" disabled style="opacity:.85" id="pv_btn">参加する</button>
+        <button class="join" disabled style="opacity:.85;background:#eee;color:#333;display:none" id="pv_map">地図を開く</button>
+      </div>
+    </div>
+    <button id="a_save" onclick="adminSave('none')">保存する（配信はしない）</button>
+    <button id="a_test" onclick="adminSave('test')">保存して、自分にだけテスト送信する</button>
+    <button id="a_savebc" onclick="adminSave('all')">保存して、今すぐ全員に配信する</button>
   </div>
-  <h2>申込状況</h2><div id="a_stats" class="hist"></div>
+
+  <div class="panel" id="apl_panel" style="display:none">
+    <div class="t" id="apl_title">申込者一覧</div>
+    <div class="hint">当日の受付でチェック。「参加」にすると候補者リストのステータスが自動で「3 イベント参加」になります</div>
+    <div id="apl_list"></div>
+
+    <div class="sub">
+      <div class="t" style="font-size:14px">申込を手動で追加（電話・口頭での受付＝代理申込）</div>
+      <label>お名前 ※必須</label><input id="m_name">
+      <label>会社名・屋号</label><input id="m_company">
+      <label>連絡先</label><input id="m_contact">
+      <label>同伴人数</label><select id="m_dohan_count"><option value="0">0名</option><option value="1">1名</option><option value="2">2名</option><option value="3">3名</option><option value="4">4名</option><option value="5">5名</option></select>
+      <label>同伴者のお名前</label><input id="m_dohan">
+      <label>きっかけ</label><select id="m_kikkake"><option value="">（選択）</option></select>
+      <label>ご紹介者</label><input id="m_shokai">
+      <label>メモ（受付した委員名など）</label><input id="m_memo">
+      <button type="button" onclick="adminAddApply()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">この内容で申込を追加する</button>
+    </div>
+
+    <div class="sub">
+      <div class="t" style="font-size:14px">申込者だけに連絡する</div>
+      <div class="hint">変更連絡・御礼・アンケートのお願いなど。キャンセル・欠席の人には送りません。定型文を押してから編集できます</div>
+      <div>
+        <button type="button" class="b_sub" onclick="insertTpl('thanks')">御礼</button>
+        <button type="button" class="b_sub" onclick="insertTpl('change')">変更連絡</button>
+        <button type="button" class="b_sub" onclick="insertTpl('survey')">アンケートのお願い</button>
+        <button type="button" class="b_sub" onclick="insertTpl('remind')">当日のご案内</button>
+      </div>
+      <textarea id="a_msg" placeholder="本文を入力（定型文ボタンで挿入できます）"></textarea>
+      <button id="a_send" onclick="adminMessage()" style="background:#3b6e9e;color:#fff;width:100%;margin-top:8px">申込者に送信する</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>📱 自分の紹介QR・紹介文</h2>
+    <div class="hint">会場では画面のQRを見せて読み取ってもらう。友人には「紹介文をLINEで送る」で1タップ転送（QR名は「紹介_あなたの表示名」）</div>
+    <button type="button" onclick="showMyQr('a_myqr')">自分のQRを表示</button>
+    <button type="button" onclick="shareReferral()">紹介文をLINEで送る</button>
+    <div id="a_myqr" style="display:none;text-align:center;margin-top:10px"></div>
+  </div>
+
+  <h2>状況</h2><div id="a_stats" class="hist"></div>
   <div><a id="a_sheet" class="sheet" target="_blank" rel="noopener">▶ 台帳スプレッドシートを開く</a></div>
 </div>
+<div id="dbg" style="font-size:10px;color:#999;margin-top:20px;word-break:break-all"></div>
 </div>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
 var LIFF_ID = "2011464754-qYbl2VQR";
 var API = "https://script.google.com/macros/s/AKfycbziKZweNT8sibVn54UrfNpQMsTxtxgBH1CqOtzLK_le7vdHdOj0eN9YbapdpG1twYMw/exec";
 
-var TOKEN = "", STATE = null, TARGET = "", MODE = "user", A_IMG = "";
+var TOKEN = "", STATE = null, TARGET = "", MODE = "user", A_IMG = "", A_RATIO = "", COPY_FROM = "";
 var DBG = {};
-function showDbg(extra){ var d = $("dbg"); if (!d) return; d.textContent = "mode=" + MODE + (extra ? " / " + extra : "") + (DBG.state ? " / state=" + DBG.state : "") + (DBG.raw ? " / q=" + DBG.raw : ""); }
 function $(id){ return document.getElementById(id); }
 function say(t){ $("msg").textContent = t; }
+function showDbg(extra){ var d = $("dbg"); if (!d) return; d.textContent = "mode=" + MODE + (extra ? " / " + extra : "") + (DBG.state ? " / state=" + DBG.state : ""); }
 window.onerror = function(m, src, line){ say("エラー: " + m + " (line " + line + ")"); };
 window.addEventListener("unhandledrejection", function(ev){ say("Promiseエラー: " + (ev.reason && ev.reason.message ? ev.reason.message : ev.reason)); });
 
 function api(action, payload){
   var body = Object.assign({ action: action, token: TOKEN }, payload || {});
   return fetch(API, { method: "POST", body: JSON.stringify(body) })
-    .then(function(r){ return r.json(); })
-    .then(function(j){ if (j && j.error) throw new Error(j.error); return j; });
+    .catch(function(){ throw new Error("通信に失敗しました。電波の良い場所でもう一度お試しください"); })
+    .then(function(r){ return r.json().catch(function(){ throw new Error("サーバーの応答が読めませんでした。少し待ってからもう一度お試しください"); }); })
+    .then(function(j){
+      if (j && j.error){
+        // 本人確認トークンの期限切れ → 操作を退避してログインし直し、再読込後に自動で続きを実行
+        if (String(j.error).indexOf("本人確認に失敗") >= 0 && !sessionStorage.getItem("relogin")){
+          try { sessionStorage.setItem("relogin", "1"); sessionStorage.setItem("pending", JSON.stringify({ action: action, payload: payload || {}, mode: MODE })); } catch (e) {}
+          say("しばらく時間が経ったため、本人確認をやり直します…");
+          try { liff.logout(); } catch (e) {}
+          liff.login({ redirectUri: location.href });
+          return new Promise(function(){});
+        }
+        throw new Error(j.error);
+      }
+      return j;
+    });
+}
+
+// 再ログイン後に、退避しておいた操作を続きから実行
+function resumePending(){
+  var raw = null;
+  try { raw = sessionStorage.getItem("pending"); sessionStorage.removeItem("pending"); } catch (e) {}
+  if (!raw) return false;
+  var p = null;
+  try { p = JSON.parse(raw); } catch (e) { return false; }
+  if (!p || !p.action) return false;
+  say("続きを実行しています…");
+  if (p.mode === "admin"){
+    MODE = "admin"; $("hdr").textContent = "沼津JC 管理メニュー"; $("user_ui").style.display = "none";
+    api(p.action, p.payload).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
+  } else {
+    api(p.action, p.payload).then(function(st){ render(st); if (st && st.done) showDone(st); }).catch(function(e){ say("エラー: " + e.message); });
+  }
+  return true;
 }
 
 function parseParams(){
@@ -112,9 +267,26 @@ function parseParams(){
     var pick = function(src, key){ var mm = String(src).match(new RegExp("(?:^|[?&/])" + key + "=([^&]*)")); return mm ? decodeURIComponent(mm[1]) : ""; };
     out.ev = pick(raw, "ev") || pick(st, "ev");
     out.p = pick(raw, "p") || pick(st, "p");
-    DBG.raw = raw.slice(0, 80); DBG.state = st.slice(0, 80);
+    DBG.state = st.slice(0, 80);
   } catch (e) { DBG.err = String(e); }
   return out;
+}
+
+function jpDate(ymd){
+  if (!ymd) return "";
+  var m = String(ymd).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return ymd;
+  var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return (d.getMonth() + 1) + "月" + d.getDate() + "日（" + "日月火水木金土".charAt(d.getDay()) + "）";
+}
+
+function el(tag, cls, text){ var x = document.createElement(tag); if (cls) x.className = cls; if (text !== undefined) x.textContent = text; return x; }
+
+function fillSelect(id, list, val){
+  var s = $(id);
+  if (s.options.length > 1) { if (val) s.value = val; return; }
+  list.forEach(function(v){ var o = document.createElement("option"); o.value = v; o.textContent = v; s.appendChild(o); });
+  if (val) s.value = val;
 }
 
 function boot(){
@@ -127,9 +299,12 @@ function boot(){
     var prm = parseParams();
     TARGET = prm.ev; MODE = prm.p === "admin" ? "admin" : "user";
     showDbg();
+    try { sessionStorage.removeItem("relogin"); } catch (e) {}
+    if (resumePending()) return;
     say("本人確認中…");
     if (MODE === "admin"){
       $("hdr").textContent = "沼津JC 管理メニュー";
+      $("user_ui").style.display = "none";
       api("liff_admin_bootstrap").then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
     } else {
       api("liff_bootstrap").then(render).catch(function(e){ say("エラー: " + e.message); });
@@ -138,12 +313,6 @@ function boot(){
 }
 
 /* ---------- 参加者モード ---------- */
-
-function fillSelect(id, list, val){
-  var s = $(id);
-  list.forEach(function(v){ var o = document.createElement("option"); o.value = v; o.textContent = v; s.appendChild(o); });
-  if (val) s.value = val;
-}
 
 function switchToAdmin(){
   MODE = "admin";
@@ -161,34 +330,39 @@ function render(st){
   say("こんにちは、" + (st.user.name || "ゲスト") + "さん");
   var ev = $("events"); ev.innerHTML = "";
   st.events.forEach(function(e){
-    var c = document.createElement("div"); c.className = "card";
+    var c = el("div", "card");
     if (e.img){ var im = document.createElement("img"); im.src = e.img; c.appendChild(im); }
-    var b = document.createElement("div"); b.className = "cb";
-    var t = document.createElement("div"); t.className = "t"; t.textContent = e.name; b.appendChild(t);
-    var m1 = document.createElement("div"); m1.className = "m"; m1.textContent = "📅 " + e.date + " " + e.time; b.appendChild(m1);
-    var m2 = document.createElement("div"); m2.className = "m"; m2.textContent = "📍 " + e.place; b.appendChild(m2);
-    var m3 = document.createElement("div"); m3.className = "m"; m3.textContent = e.desc; b.appendChild(m3);
+    var b = el("div", "cb");
+    b.appendChild(el("div", "t", e.name));
+    b.appendChild(el("div", "m", "📅 " + e.date + " " + e.time));
+    b.appendChild(el("div", "m", "📍 " + e.place));
+    if (e.fee) b.appendChild(el("div", "m", "💰 参加費 " + e.fee));
+    if (e.remaining !== null && e.remaining !== undefined && e.open) b.appendChild(el("div", "m", "🪑 残り" + e.remaining + "席"));
+    b.appendChild(el("div", "m", e.desc));
+    if (e.mapUrl){ var a = el("a", "mapbtn", "📍 地図を開く"); a.href = e.mapUrl; a.target = "_blank"; a.rel = "noopener"; b.appendChild(a); }
     if (e.applied){
-      var ch = document.createElement("span"); ch.className = "chip ok"; ch.textContent = "申込済み ✓"; b.appendChild(ch);
-      var cx = document.createElement("button"); cx.className = "cancel"; cx.textContent = "キャンセルする";
+      b.appendChild(el("span", "chip ok", "申込済み ✓"));
+      if (e.calUrl){ var ca = el("a", "mapbtn", "📆 カレンダーに追加"); ca.href = e.calUrl; ca.target = "_blank"; ca.rel = "noopener"; b.appendChild(ca); }
+      b.appendChild(document.createElement("br"));
+      var ed = el("button", "cancel", "内容を変更する"); ed.style.marginRight = "16px";
+      ed.onclick = function(){ openForm(e, true); };
+      b.appendChild(ed);
+      var cx = el("button", "cancel", "キャンセルする");
       cx.onclick = function(){
         if (confirm(e.name + " の申込をキャンセルしますか？")) api("liff_cancel", { ev: e.name }).then(render).catch(function(er){ say("エラー: " + er.message); });
       };
       b.appendChild(cx);
     } else if (!e.open){
-      var ch2 = document.createElement("span"); ch2.className = "chip ng"; ch2.textContent = "受付終了"; b.appendChild(ch2);
+      b.appendChild(el("span", "chip ng", "受付終了"));
     } else {
-      var bt = document.createElement("button"); bt.className = "join";
-      bt.textContent = "参加する" + (e.deadline ? "（締切" + e.deadline + "）" : "");
-      bt.onclick = function(){ openForm(e.name); };
+      var bt = el("button", "join", "参加する" + (e.deadline ? "（締切" + e.deadline + "）" : ""));
+      bt.onclick = function(){ openForm(e); };
       b.appendChild(bt);
     }
     c.appendChild(b); ev.appendChild(c);
   });
-  if ($("f_gyoshu").options.length <= 1){
-    fillSelect("f_gyoshu", st.gyoshuList, st.prefill.gyoshu);
-    fillSelect("f_kikkake", st.keiroList, st.prefill.kikkake);
-  }
+  fillSelect("f_gyoshu", st.gyoshuList, st.prefill.gyoshu);
+  fillSelect("f_kikkake", st.keiroList, st.prefill.kikkake);
   $("f_name").value = st.prefill.name || $("f_name").value;
   $("f_company").value = st.prefill.company || $("f_company").value;
   $("f_contact").value = st.prefill.contact || $("f_contact").value;
@@ -196,38 +370,125 @@ function render(st){
   var h = $("hist"); h.innerHTML = "";
   if (!st.history.length){ h.textContent = "まだ申込はありません"; }
   st.history.forEach(function(x){
-    var d = document.createElement("div"); d.className = "hist";
-    d.textContent = x.event + "（" + x.at + "）" + (x.cancelled ? " … キャンセル済み" : " … 申込済み✓") + (x.dohan ? " 同伴:" + x.dohan : "");
-    h.appendChild(d);
+    var row = el("div", "hist", x.event + (x.eventDate ? "　" + x.eventDate : "") + "\n申込 " + x.at + (x.cancelled ? " … キャンセル済み" : " … 申込済み✓") + (x.dohanCount ? "　同伴" + x.dohanCount + "名" : ""));
+    row.style.whiteSpace = "pre-wrap";
+    if (x.calUrl){ row.appendChild(document.createElement("br")); var a2 = el("a", "mapbtn", "📆 カレンダーに追加"); a2.href = x.calUrl; a2.target = "_blank"; a2.rel = "noopener"; row.appendChild(a2); }
+    h.appendChild(row);
   });
   $("formbox").style.display = "none";
+  $("done").style.display = "none";
   var tgt = STATE.events.filter(function(e){ return e.name === TARGET && e.open && !e.applied; })[0];
-  if (tgt) openForm(tgt.name);
+  if (tgt) openForm(tgt);
   TARGET = "";
 }
 
-function openForm(name){
-  $("ftitle").textContent = name + " への参加申込";
-  $("formbox").dataset.ev = name;
-  $("formbox").style.display = "block";
-  $("formbox").scrollIntoView({ behavior: "smooth" });
+function openForm(e, edit){
+  var f = $("formbox");
+  f.dataset.ev = e.name;
+  $("ftitle").textContent = e.name + (edit ? " の申込内容を変更" : " への参加申込");
+  $("ffee").textContent = (e.fee ? "💰 参加費 " + e.fee + "　" : "") + "📅 " + e.date + " " + e.time;
+  var pf = STATE.prefill || {};
+  var my = edit && STATE.myApplies ? STATE.myApplies[e.name] : null;
+  var src = my || pf;
+  $("f_name").value = pf.name || $("f_name").value;
+  $("f_company").value = src.company || "";
+  fillSelect("f_gyoshu", STATE.gyoshuList, ""); $("f_gyoshu").value = src.gyoshu || "";
+  $("f_contact").value = src.contact || "";
+  fillSelect("f_kikkake", STATE.keiroList, ""); $("f_kikkake").value = src.kikkake || "";
+  $("f_shokai").value = src.shokai || "";
+  $("f_dohan").value = src.dohan || "";
+  $("f_dohan_count").value = String(src.dohanCount || 0);
+  $("f_memo").value = my ? (my.memo || "") : "";
+  $("f_doui").checked = !!edit;
+  // 2回目以降（氏名・連絡先が分かっている）はクイック申込を優先
+  var canQuick = !edit && !!pf.name && !!pf.contact;
+  $("quick").style.display = canQuick ? "block" : "none";
+  $("full").style.display = canQuick ? "none" : "block";
+  if (canQuick){
+    $("q_summary").textContent = pf.name + (pf.company ? "（" + pf.company + "）" : "") + "／" + pf.contact;
+    $("q_dohan_count").value = "0"; $("q_dohan").value = ""; $("q_memo").value = ""; $("q_doui").checked = false;
+  }
+  f.style.display = "block";
+  f.scrollIntoView({ behavior: "smooth" });
 }
 
-function sendApply(){
-  var d = { name: $("f_name").value, company: $("f_company").value, gyoshu: $("f_gyoshu").value,
-            contact: $("f_contact").value, kikkake: $("f_kikkake").value, shokai: $("f_shokai").value,
-            dohan: $("f_dohan").value, memo: $("f_memo").value, doui: $("f_doui").checked };
-  if (!d.name.trim()){ alert("お名前を入力してください"); return; }
-  if (!d.contact.trim()){ alert("連絡先を入力してください"); return; }
+function showFull(){ $("quick").style.display = "none"; $("full").style.display = "block"; }
+
+function sendApply(fromQuick){
+  var pf = STATE.prefill || {};
+  var d = fromQuick
+    ? { name: pf.name, company: pf.company || "", gyoshu: pf.gyoshu || "", contact: pf.contact, kikkake: pf.kikkake || "", shokai: pf.shokai || "",
+        dohanCount: $("q_dohan_count").value, dohan: $("q_dohan").value, memo: $("q_memo").value, doui: $("q_doui").checked }
+    : { name: $("f_name").value, company: $("f_company").value, gyoshu: $("f_gyoshu").value, contact: $("f_contact").value,
+        kikkake: $("f_kikkake").value, shokai: $("f_shokai").value,
+        dohanCount: $("f_dohan_count").value, dohan: $("f_dohan").value, memo: $("f_memo").value, doui: $("f_doui").checked };
+  if (!String(d.name || "").trim()){ alert("お名前を入力してください"); return; }
+  if (!String(d.contact || "").trim()){ alert("連絡先を入力してください"); return; }
+  var ct = String(d.contact).trim();
+  var looksOk = ct.replace(/\D/g, "").length >= 10 || ct.indexOf("@") > 0;
+  if (!looksOk && !confirm("連絡先「" + ct + "」は電話番号・メールアドレスとして読めません。この内容で送りますか？")) return;
   if (!d.doui){ alert("同意のチェックをお願いします"); return; }
-  $("send").disabled = true;
+  var btns = ["send", "q_send"];
+  btns.forEach(function(id){ $(id).disabled = true; });
   say("送信中…");
   api("liff_apply", { ev: $("formbox").dataset.ev, data: d }).then(function(st){
-    $("send").disabled = false;
-    say("お申込みありがとうございました✅");
+    btns.forEach(function(id){ $(id).disabled = false; });
     render(st);
+    showDone(st);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }).catch(function(e){ $("send").disabled = false; say("エラー: " + e.message); });
+  }).catch(function(e){ btns.forEach(function(id){ $(id).disabled = false; }); say("エラー: " + e.message); });
+}
+
+function showDone(st){
+  var dn = st.done;
+  if (!dn) return;
+  var e = STATE.events.filter(function(x){ return x.name === dn.event; })[0];
+  var my = STATE.myApplies ? STATE.myApplies[dn.event] : null;
+  $("done_title").textContent = dn.isUpdate ? "申込内容を変更しました" : "申込完了！ありがとうございます";
+  var lines = ["【" + dn.event + "】"];
+  if (e){ lines.push("📅 " + e.date + " " + e.time, "📍 " + e.place); if (e.fee) lines.push("💰 参加費 " + e.fee); }
+  if (my && my.dohanCount > 0) lines.push("👥 同伴 " + my.dohanCount + "名" + (my.dohan ? "（" + my.dohan + "）" : ""));
+  lines.push("", "確認メッセージをトークにお送りしました。変更・キャンセルはこの画面からいつでもできます。");
+  $("done_body").textContent = lines.join("\n");
+  var cal = $("done_cal");
+  if (e && e.calUrl){ cal.href = e.calUrl; cal.style.display = "inline-block"; } else { cal.style.display = "none"; }
+  $("done").style.display = "block";
+  say("こんにちは、" + (st.user.name || "ゲスト") + "さん");
+}
+
+// ---- 紹介（自分専用QR・紹介文の転送）----
+var GO_URL = location.origin + location.pathname.replace(/[^\/]*$/, "") + "go";
+function myName(){ return (STATE && ((STATE.me && STATE.me.name) || (STATE.user && STATE.user.name))) || ""; }
+function myRefUrl(){ return GO_URL + "?src=" + encodeURIComponent("紹介_" + (myName() || "不明").slice(0, 20)); }
+function showMyQr(id){
+  var box = $(id); box.style.display = "block"; box.innerHTML = "";
+  var draw = function(){
+    new QRCode(box, { text: myRefUrl(), width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+    box.appendChild(el("div", "hint", "沼津JC公式LINE 友だち追加（紹介: " + (myName() || "不明") + "）。画面を見せて読み取ってもらってください"));
+  };
+  if (window.QRCode) return draw();
+  var s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+  s.onload = draw; s.onerror = function(){ box.textContent = "QRの部品を読み込めませんでした。通信環境を確認して開き直してください"; };
+  document.head.appendChild(s);
+}
+function shareReferral(){
+  var text = ((STATE && STATE.referralText) || "沼津JCの公式LINEです。よかったら登録してみてください。") + "\n" + myRefUrl();
+  if (liff.isApiAvailable && liff.isApiAvailable("shareTargetPicker")){
+    liff.shareTargetPicker([{ type: "text", text: text }])
+      .then(function(res){ if (res) say("紹介文を送りました"); })
+      .catch(function(){ copyText(text); });
+  } else { copyText(text); }
+}
+function copyText(text){
+  var done = function(){ alert("紹介文をコピーしました。送りたいトークに貼り付けてください"); };
+  var fallback = function(){ prompt("この文をコピーして送ってください", text); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+  else fallback();
+}
+
+function closeLiff(){
+  try { liff.closeWindow(); } catch (e) { $("done").style.display = "none"; }
 }
 
 /* ---------- 管理者モード ---------- */
@@ -245,64 +506,242 @@ $("a_img").addEventListener("change", function(ev){
       c.width = w; c.height = h;
       c.getContext("2d").drawImage(im, 0, 0, w, h);
       A_IMG = c.toDataURL("image/jpeg", 0.85);
+      A_RATIO = w + ":" + h;
       $("a_prev").src = A_IMG;
       $("a_prev").style.display = "block";
+      $("a_rmimg").checked = false;
+      updatePreview();
     };
     im.src = r.result;
   };
   r.readAsDataURL(f);
 });
 
+// 開催日を入れたら締切日を2日前で自動提案（締切が空欄のときだけ）
+$("a_date").addEventListener("change", function(){
+  if ($("a_deadline").value) return;
+  var m = $("a_date").value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return;
+  var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) - 2);
+  var pad = function(n){ return (n < 10 ? "0" : "") + n; };
+  $("a_deadline").value = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  updatePreview();
+});
+
+function curEvent(name){ return STATE && STATE.events ? (STATE.events.filter(function(e){ return e.name === name; })[0] || null) : null; }
+
+function updatePreview(){
+  var name = $("a_name").value.trim();
+  $("pv_name").textContent = name || "（イベント名）";
+  $("pv_date").textContent = "📅 " + jpDate($("a_date").value) + " " + $("a_time").value;
+  $("pv_place").textContent = "📍 " + $("a_place").value;
+  var fee = $("a_fee").value.trim();
+  $("pv_fee").style.display = fee ? "block" : "none"; $("pv_fee").textContent = "💰 参加費 " + fee;
+  var cap = Number($("a_cap").value);
+  var cur = curEvent(name);
+  var cnt = cur ? cur.count : 0;
+  $("pv_rem").style.display = cap > 0 ? "block" : "none"; $("pv_rem").textContent = "🪑 定員" + cap + "名・残り" + Math.max(0, cap - cnt) + "席";
+  $("pv_desc").textContent = $("a_desc").value;
+  var dl = $("a_deadline").value;
+  $("pv_btn").textContent = "参加する" + (dl ? "（締切" + jpDate(dl) + "）" : "");
+  $("pv_map").style.display = /^https?:\/\//.test($("a_map").value.trim()) ? "block" : "none";
+  var src = $("a_rmimg").checked ? "" : (A_IMG || ($("a_prev").style.display === "block" ? $("a_prev").src : ""));
+  if (src){ $("pv_img").src = src; $("pv_img").style.display = "block"; } else { $("pv_img").style.display = "none"; }
+}
+["a_name","a_date","a_time","a_place","a_desc","a_deadline","a_fee","a_map","a_cap"].forEach(function(id){ $(id).addEventListener("input", updatePreview); });
+
+// 受付中→予約あり→受付終了→終了・停止 の順に並べる
+function sortedEvents(evs){
+  var rank = function(e){ if (e.past || !e.active) return 3; if (e.open) return 0; if (e.scheduleAt) return 1; return 2; };
+  return evs.slice().sort(function(a, b){ var r = rank(a) - rank(b); if (r) return r; return (a.date || "").localeCompare(b.date || ""); });
+}
+
 function renderAdmin(st){
   STATE = st;
+  $("user_ui").style.display = "none";
   $("admin_ui").style.display = "block";
+  showDbg("admin panel rendered");
   if (st.message){ say(st.message); } else { say("管理メニュー（イベントの作成・修正・配信）"); }
   var s = $("a_ev");
   var cur = s.value;
   s.innerHTML = "<option value=''>（新規作成）</option>";
-  st.events.forEach(function(e){
+  sortedEvents(st.events).forEach(function(e){
     var o = document.createElement("option");
     o.value = e.name;
-    o.textContent = e.name + "（申込" + e.count + (e.cap ? "/" + e.cap : "") + "件・" + (e.active ? (e.open ? "受付中" : "受付終了") : "停止中") + "）";
+    var state = (e.past || !e.active) ? "終了" : (e.open ? "受付中" : "受付終了");
+    var extra = (e.broadcastAt ? "・配信済" + e.broadcastAt : "") + (e.scheduleAt ? "・予約" + e.scheduleAt.replace("T", " ") : "");
+    o.textContent = (state === "終了" ? "（終了）" : "") + e.name + "（申込" + e.count + (e.cap ? "/" + e.cap : "") + "・" + state + extra + "）";
     s.appendChild(o);
   });
   if (cur) s.value = cur;
-  var stats = $("a_stats");
+  fillSelect("m_kikkake", st.keiroList || [], "");
   var lines = [];
-  st.events.forEach(function(e){ lines.push("🎫 " + e.name + ": " + e.count + (e.cap ? "／定員" + e.cap : "") + "件"); });
+  var q = st.quota || {};
+  lines.push("📤 今月の配信通数: " + (q.used === null || q.used === undefined ? "取得不可" : q.used + (q.limit ? "／" + q.limit : "")) + (q.limit && q.used >= q.limit * 0.8 ? "（上限が近い→有料プラン検討）" : ""));
+  var fi = st.insight || {};
+  if (fi.followers !== null && fi.followers !== undefined) lines.push("👥 友だち " + fi.followers + "人（ブロック " + fi.blocks + "・" + fi.date + "時点）");
+  else lines.push("👥 友だち数: 集計待ち（前日分が翌日に反映）");
+  st.events.forEach(function(e){ lines.push("🎫 " + e.name + ": " + e.count + (e.cap ? "／定員" + e.cap : "") + "件" + (e.broadcastAt ? "（配信済 " + e.broadcastAt + "）" : "（未配信）") + (e.deadlineRemind ? "（締切前配信 " + e.deadlineRemindAt + "）" : "") + (e.dayStats ? "／当日: QR読み取り " + e.dayStats.reads + "・友だち追加 " + e.dayStats.adds + "・申込 " + e.dayStats.applies : "")); });
   var total = 0; Object.keys(st.stats || {}).forEach(function(k){ total += st.stats[k]; });
-  lines.push("👥 打席表: " + total + "人");
-  stats.textContent = lines.join(" ／ ");
+  lines.push("📋 候補者リスト: " + total + "人");
+  var en = st.entries || [];
+  lines.push(en.length ? "🔗 QR読み取り（今月／累計）: " + en.slice(0, 8).map(function(e){ return e.src + " " + e.month + "／" + e.total; }).join("、") : "🔗 QR読み取り: まだありません");
+  lines.push("🔑 管理者: " + (st.admins || []).map(function(a){ return a.name; }).join("、") + "（追加は「管理者招待」、自分を外すのは「管理者解除」）");
+  $("a_stats").innerHTML = "";
+  lines.forEach(function(t){ $("a_stats").appendChild(el("div", "", t)); });
   $("a_sheet").href = st.sheetUrl;
+  renderApplicants();
+  updatePreview();
+  $("a_copywrap").style.display = $("a_ev").value ? "block" : "none";
+}
+
+function renderApplicants(){
+  var n = $("a_ev").value;
+  var e = curEvent(n);
+  var panel = $("apl_panel");
+  if (!e){ panel.style.display = "none"; return; }
+  panel.style.display = "block";
+  $("apl_title").textContent = "申込者一覧（" + e.name + "・" + e.count + "件・" + (e.people || e.count) + "人）";
+  var list = $("apl_list"); list.innerHTML = "";
+  if (!e.applicants.length){ list.appendChild(el("div", "hint", "まだ申込はありません")); return; }
+  e.applicants.forEach(function(a){
+    var row = el("div", "apl");
+    var nm = el("div", "nm");
+    nm.appendChild(el("div", "", a.name + (a.company ? "（" + a.company + "）" : "") + (a.dohanCount ? " 同伴" + a.dohanCount + "名" + (a.dohan ? "(" + a.dohan + ")" : "") : "")));
+    nm.appendChild(el("small", "", (a.contact || "") + (a.kikkake ? "・" + a.kikkake : "") + (a.hasLine ? "" : "・LINE未紐付")));
+    row.appendChild(nm);
+    if (a.manual) row.appendChild(el("span", "tag man", "代理"));
+    if (a.taio === "キャンセル"){
+      row.appendChild(el("span", "tag cxl", "キャンセル"));
+    } else {
+      if (a.taio === "参加") row.appendChild(el("span", "tag att", "参加"));
+      else if (a.taio === "欠席") row.appendChild(el("span", "tag abs", "欠席"));
+      var bAtt = el("button", "b_att", "参加"); bAtt.onclick = function(){ setAttend(e.name, a.row, "参加"); };
+      var bAbs = el("button", "b_abs", "欠席"); bAbs.onclick = function(){ setAttend(e.name, a.row, "欠席"); };
+      row.appendChild(bAtt); row.appendChild(bAbs);
+      if (a.taio){ var bClr = el("button", "b_clr", "戻す"); bClr.onclick = function(){ setAttend(e.name, a.row, ""); }; row.appendChild(bClr); }
+    }
+    list.appendChild(row);
+  });
+}
+
+function setAttend(ev, row, status){
+  say("記録中…");
+  api("liff_admin_attend", { ev: ev, row: row, status: status }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
+}
+
+function insertTpl(kind){
+  var n = $("a_ev").value;
+  var e = curEvent(n);
+  var when = e ? jpDate(e.date) + " " + e.time : "";
+  var tpl = {
+    thanks: "本日はご参加いただき、ありがとうございました！\n楽しんでいただけましたでしょうか。\n次回のイベントもこのLINEでご案内しますので、ぜひまたお越しください。",
+    change: "【重要】" + (e ? e.name : "イベント") + "の内容に変更があります。\n変更点: （ここに記入）\n日時: " + when + "\n場所: " + (e ? e.place : "") + "\nご確認をお願いします。ご不明点はこのLINEに返信してください。",
+    survey: "ご参加ありがとうございました。今後の企画の参考に、1分だけアンケートにご協力ください。\n（アンケートのURLをここに）\n感想や「こんな会があったら」も、このLINEに返信いただけると嬉しいです。",
+    remind: "いよいよ " + when + " 開催です！\n場所: " + (e ? e.place : "") + (e && e.fee ? "\n参加費: " + e.fee : "") + (e && e.mapUrl ? "\n地図: " + e.mapUrl : "") + "\nお気をつけてお越しください。",
+  };
+  $("a_msg").value = tpl[kind] || "";
+  $("a_msg").focus();
+}
+
+function adminMessage(){
+  var n = $("a_ev").value;
+  var text = $("a_msg").value.trim();
+  if (!n){ alert("先にイベントを選んでください"); return; }
+  if (!text){ alert("本文を入力してください"); return; }
+  var e = curEvent(n);
+  var cnt = e ? e.applicants.filter(function(a){ return a.hasLine && a.taio !== "キャンセル" && a.taio !== "欠席"; }).length : 0;
+  if (!confirm("「" + n + "」の申込者" + cnt + "名にLINEで送信します。よろしいですか？")) return;
+  $("a_send").disabled = true;
+  say("送信中…");
+  api("liff_admin_message", { ev: n, text: text }).then(function(st){ $("a_send").disabled = false; $("a_msg").value = ""; renderAdmin(st); })
+    .catch(function(e){ $("a_send").disabled = false; say("エラー: " + e.message); });
+}
+
+function adminAddApply(){
+  var n = $("a_ev").value;
+  if (!n){ alert("先にイベントを選んでください"); return; }
+  var d = { name: $("m_name").value.trim(), company: $("m_company").value, contact: $("m_contact").value,
+            dohan: $("m_dohan").value, dohanCount: $("m_dohan_count").value, kikkake: $("m_kikkake").value, shokai: $("m_shokai").value, memo: $("m_memo").value };
+  if (!d.name){ alert("お名前を入力してください"); return; }
+  say("追加中…");
+  api("liff_admin_add_apply", { ev: n, data: d }).then(function(st){
+    ["m_name","m_company","m_contact","m_dohan","m_shokai","m_memo"].forEach(function(id){ $(id).value = ""; });
+    $("m_kikkake").value = "";
+    renderAdmin(st);
+  }).catch(function(e){ say("エラー: " + e.message); });
+}
+
+function clearForm(){
+  ["a_name","a_date","a_time","a_place","a_desc","a_deadline","a_cap","a_fee","a_map","a_sched"].forEach(function(id){ $(id).value = ""; });
+  $("a_active").checked = true; $("a_dlremind").checked = false;
+  A_IMG = ""; A_RATIO = ""; COPY_FROM = ""; $("a_prev").style.display = "none"; $("a_img").value = ""; $("a_rmimg").checked = false;
 }
 
 function adminLoad(){
   var n = $("a_ev").value;
-  A_IMG = ""; $("a_prev").style.display = "none"; $("a_img").value = "";
-  if (!n){ ["a_name","a_date","a_time","a_place","a_desc","a_deadline","a_cap"].forEach(function(id){ $(id).value = ""; }); $("a_active").checked = true; return; }
-  var e = STATE.events.filter(function(x){ return x.name === n; })[0];
+  clearForm();
+  $("a_copywrap").style.display = n ? "block" : "none";
+  if (!n){ renderApplicants(); updatePreview(); return; }
+  var e = curEvent(n);
   if (!e) return;
   $("a_name").value = e.name; $("a_date").value = e.date; $("a_time").value = e.time;
   $("a_place").value = e.place; $("a_desc").value = e.desc; $("a_deadline").value = e.deadline;
-  $("a_cap").value = e.cap; $("a_active").checked = e.active;
+  $("a_cap").value = e.cap; $("a_fee").value = e.fee; $("a_map").value = e.mapUrl; $("a_sched").value = e.scheduleAt || "";
+  $("a_active").checked = e.active; $("a_dlremind").checked = !!e.deadlineRemind;
   if (e.img){ $("a_prev").src = e.img; $("a_prev").style.display = "block"; }
-  say("読み込みました（画像は再選択したときだけ差し替わります）");
+  renderApplicants();
+  updatePreview();
+  say("読み込みました（画像は再選択したときだけ差し替わります）" + (e.broadcastAt ? "／配信済 " + e.broadcastAt : ""));
 }
 
-function adminSave(bc){
+// 複製: 読込中のイベントを元に新規作成（日付・締切・予約・配信情報は空にする。画像は引き継ぐ）
+function adminCopy(){
+  var n = $("a_ev").value;
+  var e = curEvent(n);
+  if (!e) return;
+  COPY_FROM = e.name;
+  $("a_ev").value = "";
+  $("a_copywrap").style.display = "none";
+  $("a_name").value = e.name + "（コピー）";
+  $("a_time").value = e.time; $("a_place").value = e.place; $("a_desc").value = e.desc;
+  $("a_cap").value = e.cap; $("a_fee").value = e.fee; $("a_map").value = e.mapUrl;
+  $("a_date").value = ""; $("a_deadline").value = ""; $("a_sched").value = ""; $("a_dlremind").checked = false; $("a_active").checked = true;
+  A_IMG = ""; A_RATIO = ""; $("a_img").value = ""; $("a_rmimg").checked = false;
+  if (e.img){ $("a_prev").src = e.img; $("a_prev").style.display = "block"; } else { $("a_prev").style.display = "none"; }
+  renderApplicants();
+  updatePreview();
+  say("複製しました。イベント名と開催日を直して保存してください（画像は元のイベントから引き継ぎます）");
+  $("a_name").focus();
+}
+
+function adminSave(mode){
   var d = { name: $("a_name").value.trim(), date: $("a_date").value, time: $("a_time").value,
             place: $("a_place").value, desc: $("a_desc").value, deadline: $("a_deadline").value,
-            cap: $("a_cap").value, active: $("a_active").checked, imageBase64: A_IMG };
+            cap: $("a_cap").value, fee: $("a_fee").value.trim(), mapUrl: $("a_map").value.trim(),
+            scheduleAt: $("a_sched").value || "", active: $("a_active").checked,
+            deadlineRemind: $("a_dlremind").checked,
+            imageBase64: A_IMG, imageRatio: A_RATIO, removeImage: $("a_rmimg").checked, copyImageFrom: COPY_FROM };
   if (!d.name){ alert("イベント名は必須です"); return; }
-  if (bc && !confirm("保存して、友だち全員に今すぐ配信します。よろしいですか？")) return;
-  $("a_save").disabled = true; $("a_savebc").disabled = true;
-  say(bc ? "保存して配信中…" : "保存中…");
-  api("liff_admin_save", { data: d, broadcast: bc }).then(function(st){
-    $("a_save").disabled = false; $("a_savebc").disabled = false;
-    A_IMG = "";
+  if (d.mapUrl && !/^https?:\/\//.test(d.mapUrl)){ alert("地図URLは https:// から始まるリンクを入れてください"); return; }
+  var cur = curEvent(d.name);
+  if (!$("a_ev").value && cur && !confirm("同じ名前のイベント「" + d.name + "」が既にあります。上書きしますか？")) return;
+  if (mode === "all"){
+    var warn = "保存して、友だち全員に今すぐ配信します。よろしいですか？";
+    if (cur && cur.broadcastAt) warn = "このイベントは " + cur.broadcastAt + " に配信済みです。もう一度全員に配信しますか？";
+    if (!confirm(warn + "\n（先に「自分にだけテスト送信」で実物を確認するのがおすすめです）")) return;
+  }
+  var btns = ["a_save","a_test","a_savebc"];
+  btns.forEach(function(id){ $(id).disabled = true; });
+  say(mode === "all" ? "保存して全員に配信中…" : mode === "test" ? "保存してテスト送信中…" : "保存中…");
+  api("liff_admin_save", { data: d, broadcast: mode }).then(function(st){
+    btns.forEach(function(id){ $(id).disabled = false; });
+    A_IMG = ""; A_RATIO = ""; COPY_FROM = ""; $("a_rmimg").checked = false;
+    $("a_ev").value = d.name;
     renderAdmin(st);
+    $("a_copywrap").style.display = "block";
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }).catch(function(e){ $("a_save").disabled = false; $("a_savebc").disabled = false; say("エラー: " + e.message); });
+  }).catch(function(e){ btns.forEach(function(id){ $(id).disabled = false; }); say("エラー: " + e.message); });
 }
 
 boot();
