@@ -1400,7 +1400,7 @@ function renderAdmin(st){
   renderTexts(st);
   renderApplicants();
   if (!VIEW_CUR){
-    VIEW_CUR = { cases: "todo", kpi: "stats", event: "event", texts: "texts", members: "members", todo: "todo", stats: "stats" }[VIEW] || "todo";
+    VIEW_CUR = { cases: "todo", roster: "cases", kpi: "stats", event: "event", texts: "texts", members: "members", todo: "todo", stats: "stats" }[VIEW] || "todo";
   }
   showView(VIEW_CUR);
   if (keepY) setTimeout(function(){ window.scrollTo({ top: keepY }); }, 0);
