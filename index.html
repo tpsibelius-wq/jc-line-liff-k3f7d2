@@ -174,6 +174,16 @@ a.sheet{font-size:13px;color:#1F4E79}
     <button type="button" class="tab" data-v="members" onclick="showView('members')">👥 会員</button>
     <button type="button" class="tab" data-v="stats" onclick="showView('stats')">📊 状況・KPI</button>
     <button type="button" class="tab" data-v="texts" onclick="showView('texts')">✍️ 文面・設定</button>
+    <button type="button" class="tab" onclick="showIntro(true)" title="使い方">？</button>
+  </div>
+  <div id="intro" class="panel" style="display:none;border:2px solid #3b6e9e">
+    <div class="t">はじめに（3つだけ）</div>
+    <div style="line-height:1.8;font-size:14px">
+      <b>1. 毎日</b>：📌要対応 を上から見る。「話を聞いてみたい」が来たら当日中に「私が対応します」→ 本人には自動で一言が届くので、続きはLINE公式アカウントのチャットで返信<br>
+      <b>2. イベント</b>：🎪イベント で登録 →「自分にだけテスト送信」で確認 →「今すぐ全員に配信」。当日は申込者一覧で出欠を「参加」に。御礼は翌朝自動<br>
+      <b>3. 困ったら</b>：トークで「管理ヘルプ」「点検」。文面は ✍️文面・設定 から直せます。PCで使うときは admin.html をブックマーク
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button type="button" onclick="hideIntro()" style="background:#3b6e9e;color:#fff;flex:1">わかりました（次から出さない）</button></div>
   </div>
   <section class="vw" data-v="todo">
   <h2 id="sec_todo">📌 要対応 <span id="todo_count" class="hint" style="font-weight:normal"></span></h2>
@@ -185,30 +195,33 @@ a.sheet{font-size:13px;color:#1F4E79}
   <h2 id="sec_event">🎪 イベント登録・配信</h2>
   <div class="panel">
     <div class="t">イベント登録・配信</div>
+    <div id="ev_table"></div>
     <label>既存イベントを読み込む（修正時）</label>
     <select id="a_ev" onchange="adminLoad()"><option value="">（新規作成）</option></select>
     <label style="font-weight:normal"><input type="checkbox" id="a_showold" style="width:auto" onchange="renderAdmin(STATE)"> 開催から3か月より前のイベントも表示</label>
-    <div id="a_copywrap" style="display:none"><button type="button" class="b_sub" onclick="adminCopy()">このイベントを複製して新規作成</button></div>
     <label>イベント名 ※必須</label><input id="a_name">
     <div class="hint">※保存後にイベント名を変えると別イベントとして新規作成されます（修正は他の項目で）</div>
     <label>開催日</label><input id="a_date" type="date">
     <label>時間</label><input id="a_time" placeholder="19:00〜21:00">
     <label>場所</label><input id="a_place">
-    <label>地図URL（Googleマップの共有リンク・任意）</label><input id="a_map" placeholder="https://maps.app.goo.gl/...">
-    <label>参加費（任意）</label><input id="a_fee" placeholder="3,000円（当日現金）">
     <label>案内文</label><textarea id="a_desc"></textarea>
     <label>申込締切日（空欄=制限なし。開催日を入れると2日前を自動提案）</label><input id="a_deadline" type="date">
-    <label style="font-weight:normal"><input type="checkbox" id="a_dlremind" style="width:auto"> 締切2日前の朝9時に「まだ間に合います」を全員に自動配信する（通数を1本使います）</label>
-    <label style="font-weight:normal"><input type="checkbox" id="a_thanks" checked style="width:auto"> 参加した人へ翌朝に御礼を自動で送る（文面は「文面」の「御礼」。出欠で「参加」にした人だけ）</label>
     <label>定員（空欄=制限なし）</label><input id="a_cap" type="number" min="1">
     <label>チラシ・画像（任意）</label><input id="a_img" type="file" accept="image/*">
     <div class="hint">自動で縮小されます。配信カード・イベント案内に載ります</div>
     <img id="a_prev">
-    <label style="font-weight:normal"><input type="checkbox" id="a_rmimg" style="width:auto" onchange="updatePreview()"> 画像なしにする（登録済みの画像を外す）</label>
+    <label style="font-weight:normal"><input type="checkbox" id="a_active" checked style="width:auto"> 受付中（外すと案内・申込から消えます）</label>
+    <details id="a_more" style="margin-top:10px"><summary style="font-size:13px;color:#1F4E79;padding:6px 0">詳しい設定（参加費・地図・予約配信・締切前リマインド・御礼・画像を外す・複製）</summary>
+    <label>参加費（任意）</label><input id="a_fee" placeholder="3,000円（当日現金）">
+    <label>地図URL（Googleマップの共有リンク・任意）</label><input id="a_map" placeholder="https://maps.app.goo.gl/...">
     <label>予約配信（日時を入れて保存すると、その時刻に自動で全員配信）</label>
     <div style="display:flex;gap:6px"><input id="a_sched" type="datetime-local" style="flex:1"><button type="button" class="b_clr" onclick="document.getElementById('a_sched').value='';" style="white-space:nowrap">取消</button></div>
     <div class="hint">※10分おきにチェックして送信します。「今すぐ全員に配信」すると予約は解除されます</div>
-    <label style="font-weight:normal"><input type="checkbox" id="a_active" checked style="width:auto"> 受付中（外すと案内・申込から消えます）</label>
+    <label style="font-weight:normal"><input type="checkbox" id="a_dlremind" style="width:auto"> 締切2日前の朝9時に「まだ間に合います」を全員に自動配信する（通数を1本使います）</label>
+    <label style="font-weight:normal"><input type="checkbox" id="a_thanks" checked style="width:auto"> 参加した人へ翌朝に御礼を自動で送る（文面は「文面」の「御礼」。出欠で「参加」にした人だけ）</label>
+    <label style="font-weight:normal"><input type="checkbox" id="a_rmimg" style="width:auto" onchange="updatePreview()"> 画像なしにする（登録済みの画像を外す）</label>
+    <div id="a_copywrap" style="display:none"><button type="button" class="b_sub" onclick="adminCopy()">このイベントを複製して新規作成</button></div>
+    </details>
 
     <div class="t" style="margin-top:16px">配信カードのプレビュー</div>
     <div class="hint">実際のLINEでの見え方に近い表示です（画像は切れずに全体が表示されます）</div>
@@ -232,6 +245,8 @@ a.sheet{font-size:13px;color:#1F4E79}
 
   <div class="panel" id="apl_panel" style="display:none">
     <div class="t" id="apl_title">申込者一覧</div>
+    <div id="apl_stats" class="hint"></div>
+    <input id="apl_q" placeholder="名前・会社で絞る（当日の受付用）" oninput="renderApplicants()" style="margin:6px 0">
     <div class="hint">当日の受付でチェック。「参加」にすると候補者リストの段階が自動で「3 イベント参加」になります</div>
     <div id="apl_list"></div>
 
@@ -797,6 +812,7 @@ function copyText(text){
 
 // ---- 画面の切替（メニューの各ボタンは別々の画面として開く。タブで行き来できる） ----
 var VIEW_CUR = "";
+var INTRO_CHECKED = false;
 var KEEP_SCROLL = false;
 function showView(v){
   var changed = VIEW_CUR !== v;
@@ -808,6 +824,14 @@ function showView(v){
   if (changed && !KEEP_SCROLL) window.scrollTo({ top: 0 });
   KEEP_SCROLL = false;
 }
+
+// ---- はじめにガイド（初回だけ。「？」でいつでも） ----
+function showIntro(force){
+  try { if (!force && localStorage.getItem("jc_intro_done")) return; } catch (e) {}
+  $("intro").style.display = "block";
+  if (force) $("intro").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function hideIntro(){ $("intro").style.display = "none"; try { localStorage.setItem("jc_intro_done", "1"); } catch (e) {} }
 
 // ---- 要対応（今日やること・最小カード） ----
 function todoCard(c){
@@ -987,6 +1011,37 @@ function adminAddCase(force){
 function caseOp(id, op, value){
   say("更新中…");
   api("liff_admin_case", { id: id, op: op, value: value }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
+}
+
+// イベントの一覧表（行を押すと下の登録欄に読み込む）
+function renderEventTable(st){
+  var box = $("ev_table"); if (!box) return; box.innerHTML = "";
+  var evs = sortedEvents(visibleEvents(st));
+  if (!evs.length){ box.appendChild(el("div", "hint", "イベントはまだありません。下の欄で作成できます")); return; }
+  var wide = window.innerWidth >= 900;
+  var state = function(e){ return (e.past || !e.active) ? "終了" : (e.open ? "受付中" : "受付終了"); };
+  var bc = function(e){ return e.broadcastAt ? "済 " + e.broadcastAt : (e.scheduleAt ? "予約 " + e.scheduleAt.replace("T", " ") : "未"); };
+  if (wide){
+    var t = document.createElement("table"); t.className = "roster";
+    var tr = document.createElement("tr");
+    ["開催日", "イベント", "状態", "申込／定員", "配信", "到達", "御礼"].forEach(function(h){ var th = document.createElement("th"); th.textContent = h; tr.appendChild(th); });
+    var th_ = document.createElement("thead"); th_.appendChild(tr); t.appendChild(th_);
+    var tb = document.createElement("tbody");
+    evs.forEach(function(e){
+      var r = document.createElement("tr"); r.className = "row"; r.onclick = function(){ $("a_ev").value = e.name; adminLoad(); };
+      [e.date || "", e.name, state(e), e.count + (e.cap ? "／" + e.cap : ""), bc(e), e.reach || "", e.thanksSent || (e.thanksAuto ? "自動" : "しない")].forEach(function(v){ var td = document.createElement("td"); td.textContent = v; r.appendChild(td); });
+      tb.appendChild(r);
+    });
+    t.appendChild(tb); box.appendChild(t);
+  } else {
+    evs.forEach(function(e){
+      var row = el("div", "apl"); row.style.cursor = "pointer"; row.onclick = function(){ $("a_ev").value = e.name; adminLoad(); };
+      var nm = el("div", "nm", e.name);
+      nm.appendChild(el("small", "", (e.date || "") + " ／ " + state(e) + " ／ 申込 " + e.count + (e.cap ? "／" + e.cap : "") + " ／ 配信 " + bc(e) + (e.reach ? " ／ 到達 " + e.reach : "")));
+      row.appendChild(nm); row.appendChild(el("span", "", "›"));
+      box.appendChild(row);
+    });
+  }
 }
 
 // 開催から3か月より前のイベントは一覧から隠す（チェックで表示）
@@ -1291,6 +1346,7 @@ function renderAdmin(st){
   STATE = st;
   document.body.classList.add("admin");
   document.title = "管理画面 - 沼津JC公式LINE";
+  if (!INTRO_CHECKED){ INTRO_CHECKED = true; showIntro(false); }
   $("user_ui").style.display = "none";
   $("admin_ui").style.display = "block";
   showDbg("admin panel rendered");
@@ -1329,6 +1385,7 @@ function renderAdmin(st){
   $("a_stats").innerHTML = "";
   lines.forEach(function(t){ $("a_stats").appendChild(el("div", "", t)); });
   $("a_sheet").href = st.sheetUrl;
+  renderEventTable(st);
   renderCases(st);
   renderAll();
   if (DETAIL_ID) fillDetail(DETAIL_ID);
@@ -1353,8 +1410,14 @@ function renderApplicants(){
   panel.style.display = "block";
   $("apl_title").textContent = "申込者一覧（" + e.name + "・" + e.count + "件・" + (e.people || e.count) + "人）";
   var list = $("apl_list"); list.innerHTML = "";
+  var cnt = { att: 0, abs: 0, cxl: 0, none: 0 };
+  e.applicants.forEach(function(a){ if (a.taio === "参加") cnt.att++; else if (a.taio === "欠席") cnt.abs++; else if (a.taio === "キャンセル") cnt.cxl++; else cnt.none++; });
+  $("apl_stats").textContent = "参加 " + cnt.att + "・欠席 " + cnt.abs + "・未記録 " + cnt.none + (cnt.cxl ? "・キャンセル " + cnt.cxl : "");
   if (!e.applicants.length){ list.appendChild(el("div", "hint", "まだ申込はありません")); return; }
-  e.applicants.forEach(function(a){
+  var q = ($("apl_q").value || "").trim().toLowerCase();
+  var shown = e.applicants.filter(function(a){ return !q || (a.name + " " + (a.company || "")).toLowerCase().indexOf(q) >= 0; });
+  if (!shown.length){ list.appendChild(el("div", "hint", "該当なし")); return; }
+  shown.forEach(function(a){
     var row = el("div", "apl");
     var nm = el("div", "nm");
     nm.appendChild(el("div", "", a.name + (a.company ? "（" + a.company + "）" : "") + (a.dohanCount ? " 同伴" + a.dohanCount + "名" + (a.dohan ? "(" + a.dohan + ")" : "") : "")));
