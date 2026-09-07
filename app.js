@@ -1251,7 +1251,8 @@ function renderAdmin(st){
     if (h && (!h.reachable || !h.ok || stale)){
       hb.style.display = "block";
       hb.textContent = (!h.reachable ? "⚠️ 外形監視: GAS に到達できませんでした（" + String(h.at || "").slice(0, 16) + "）" : stale ? "⚠️ 外形監視の結果が古いです（" + String(h.at).slice(0, 16) + "）。Cloudflare の定期実行を確認" : "⚠️ 直近の点検で問題があります（" + String(h.at || "").slice(0, 16) + "）")
-        + ((h.warnings || []).length ? "\n" + (h.warnings || []).slice(0, 5).join("\n") : "");
+        + ((h.warnings || []).length ? "\n" + (h.warnings || []).slice(0, 5).join("\n") : "")
+        + "\n直したあとは 設定 →「外形監視を今実行」で更新できます（開き直しでも数分内に自動で更新）";
     } else hb.style.display = "none";
   }
   document.body.classList.add("admin");
