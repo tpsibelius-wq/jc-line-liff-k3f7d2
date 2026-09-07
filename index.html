@@ -224,6 +224,7 @@ a.sheet{font-size:13px;color:var(--navy)}
     <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
       <button type="button" onclick="$('a_ev').value=''; adminLoad(); window.scrollTo({top: document.getElementById('a_name').offsetTop - 80, behavior: 'smooth'});" style="background:var(--blue);color:#fff;font-size:13px;padding:8px 12px">＋ 新しいイベント</button>
       <span id="ev_editing" class="hint"></span>
+      <button type="button" id="ev_del" class="b_abs" style="display:none;font-size:12px;padding:6px 10px;min-height:30px" onclick="adminDeleteEvent()">このイベントを削除</button>
     </div>
     <select id="a_ev" onchange="adminLoad()" style="display:none"><option value="">（新規作成）</option></select>
     <label style="font-weight:normal"><input type="checkbox" id="a_showold" style="width:auto" onchange="renderAdmin(STATE)"> 過去のイベントも表示</label>
@@ -451,7 +452,7 @@ function api(action, payload){
       .then(function(r){ return r.json().catch(function(){ throw new Error("サーバーの応答が読めませんでした。少し待ってからもう一度お試しください"); }); });
   };
   // 申込・キャンセル・管理操作はWorkerが即時に受け付け、裏でGASへ渡す（配信などの結果はトークに届く）。Workerが使えないときはGASへ直接
-  var viaWorker = !!WORKER && (action === "liff_apply" || action === "liff_cancel" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap" && action !== "liff_admin_ops")); // 運用は GAS に直接
+  var viaWorker = !!WORKER && (action === "liff_apply" || action === "liff_cancel" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap" && action !== "liff_admin_ops" && action !== "liff_admin_delete_event")); // 運用と削除は GAS に直接
   var p = viaWorker
     ? send(WORKER).then(function(j){ if (j && j.error && /no snapshot|worker/.test(j.error)) throw new Error("worker"); return j; }).catch(function(){ return send(API); })
     : send(API);
@@ -658,6 +659,17 @@ function adminOps(op, confirmMsg){
     out.textContent = (j.message ? j.message + "\n" : "") + (j.text || "");
     if (op === "retention_purge") refreshAdmin();
   }).catch(function(e){ out.textContent = "エラー: " + e.message; });
+}
+
+// イベントの削除（申込の記録も消える。テスト以外は「受付中」を外して残すのが基本）
+function adminDeleteEvent(){
+  var n = $("a_ev").value; if (!n) return;
+  var cur = curEvent(n); var cnt = cur ? Number(cur.count || (cur.applicants || []).length || 0) : 0;
+  if (!confirm("イベント「" + n + "」を削除します。" + (cnt ? "申込 " + cnt + " 件の記録も消えます。" : "") + "元に戻せません。よろしいですか？")) return;
+  if (cnt && !confirm("本当に削除しますか？（実際に開催したイベントは削除せず「受付中」を外して残すのがおすすめ）")) return;
+  say("削除中…");
+  api("liff_admin_delete_event", { ev: n, force: true }).then(function(st){ $("a_ev").value = ""; clearForm(); renderAdmin(st); say(st.message || "削除しました"); })
+    .catch(function(e){ say("エラー: " + e.message); });
 }
 
 /* ---------- 参加者モード ---------- */
@@ -1069,7 +1081,12 @@ function fillDetail(id){
   if (/^[567] /.test(c.status)) add("引継ぎ文をコピー", "", function(){ copyText(handoffText(c)); });
   if (/^7 /.test(c.status)) add("総務へ送る", "", function(){ if (confirm("総務担当に引継ぎ文をLINEで送ります。よろしいですか？")) { say("送信中…"); api("liff_admin_handoff", { id: c.id }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); }); } });
   add("統合", "", function(){ var t = prompt("残す側の番号（例 C-003）。この人（" + c.id + "）は「辞退・対象外」になり、空欄の情報は残す側に寄せます"); if (!t) return; if (confirm(c.id + " を " + t.trim() + " に統合しますか？")) caseOp(c.id, "merge", t.trim()); });
-  if (/^1 /.test(c.status) && !(c.events && c.events.length)) add("削除（誤登録）", "b_abs", function(){ if (confirm(c.name + " を削除します。よろしいですか？") && confirm("本当に削除しますか？（元に戻せません）")) { closeDetail(); caseOp(c.id, "delete", ""); } });
+  add("削除", "b_abs", function(){
+    var ev = (c.events && c.events.length) || 0;
+    var warn = c.name + " を候補者リストから削除します。" + (ev ? "この人の申込 " + ev + " 件の記録も消えます（イベントの人数・出欠から外れます）。" : "") + "元に戻せません。";
+    if (!/^1 /.test(c.status) || ev) warn += "\n実際に辞退した人は「辞退・対象外」にして記録を残すのが基本です。";
+    if (confirm(warn) && confirm("本当に削除しますか？")) caseOp(c.id, "delete", "force");
+  });
 }
 function saveDetail(){
   var c = caseById(DETAIL_ID); if (!c) return;
@@ -1522,6 +1539,7 @@ function renderAdmin(st){
   if (keepY) setTimeout(function(){ window.scrollTo({ top: keepY }); }, 0);
   updatePreview();
   $("a_copywrap").style.display = $("a_ev").value ? "block" : "none";
+  var evd = $("ev_del"); if (evd) evd.style.display = $("a_ev").value ? "inline-block" : "none";
 }
 
 function renderApplicants(){
@@ -1616,6 +1634,7 @@ function adminLoad(){
   var n = $("a_ev").value;
   clearForm();
   $("a_copywrap").style.display = n ? "block" : "none";
+  var evd2 = $("ev_del"); if (evd2) evd2.style.display = n ? "inline-block" : "none";
   if (!n){ renderApplicants(); updatePreview(); return; }
   var e = curEvent(n);
   if (!e) return;
