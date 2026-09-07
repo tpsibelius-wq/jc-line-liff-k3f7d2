@@ -284,7 +284,6 @@ function render(st){
     b.appendChild(el("div", "m", "📅 " + e.date + " " + e.time));
     b.appendChild(el("div", "m", "📍 " + e.place));
     if (e.fee) b.appendChild(el("div", "m", "💰 参加費 " + e.fee));
-    if (e.remaining !== null && e.remaining !== undefined && e.open) b.appendChild(el("div", "m", "🪑 残り" + e.remaining + "席"));
     b.appendChild(el("div", "m", e.desc));
     if (e.mapUrl){ var a = el("a", "mapbtn", "📍 地図を開く"); a.href = e.mapUrl; a.target = "_blank"; a.rel = "noopener"; b.appendChild(a); }
     if (e.open){ var shb = el("a", "mapbtn", "📤 友だちに知らせる"); shb.href = "#"; if (e.mapUrl) shb.style.marginLeft = "14px"; shb.onclick = function(ev){ ev.preventDefault(); shareEvent(e); }; b.appendChild(shb); }
@@ -1224,7 +1223,7 @@ function updatePreview(){
   var cap = Number($("a_cap").value);
   var cur = curEvent(name);
   var cnt = cur ? cur.count : 0;
-  $("pv_rem").style.display = cap > 0 ? "block" : "none"; $("pv_rem").textContent = "🪑 定員" + cap + "名・残り" + Math.max(0, cap - cnt) + "席";
+  $("pv_rem").style.display = cap > 0 ? "block" : "none"; $("pv_rem").textContent = "🪑 定員" + cap + "名";
   $("pv_desc").textContent = $("a_desc").value;
   var dl = $("a_deadline").value;
   $("pv_btn").textContent = "参加する" + (dl ? "（締切" + jpDate(dl) + "）" : "");
@@ -1317,7 +1316,7 @@ function renderAdmin(st){
   showView(VIEW_CUR);
   if (keepY) setTimeout(function(){ window.scrollTo({ top: keepY }); }, 0);
   updatePreview();
-  $("a_copywrap").style.display = $("a_ev").value ? "block" : "none";
+  $("ev_copy").style.display = $("a_ev").value ? "inline-block" : "none";
   var evd = $("ev_del"); if (evd) evd.style.display = $("a_ev").value ? "inline-block" : "none";
 }
 
@@ -1413,7 +1412,8 @@ function adminLoad(){
   setTimeout(autosizeAll, 0); // 読み込んだ案内文の長さに欄を合わせる
   var n = $("a_ev").value;
   clearForm();
-  $("a_copywrap").style.display = n ? "block" : "none";
+  $("ev_copy").style.display = n ? "inline-block" : "none";
+  $("ev_editing").textContent = n ? "編集中: " + n + "（保存すると上書き）" : "新規作成";
   var evd2 = $("ev_del"); if (evd2) evd2.style.display = n ? "inline-block" : "none";
   if (!n){ renderApplicants(); updatePreview(); return; }
   var e = curEvent(n);
@@ -1435,7 +1435,8 @@ function adminCopy(){
   if (!e) return;
   COPY_FROM = e.name;
   $("a_ev").value = "";
-  $("a_copywrap").style.display = "none";
+  $("ev_copy").style.display = "none";
+  $("ev_editing").textContent = "「" + e.name + "」を複製中（新規のイベントとして保存されます）";
   $("a_name").value = e.name + "（コピー）";
   $("a_time").value = e.time; $("a_place").value = e.place; $("a_desc").value = e.desc;
   $("a_cap").value = e.cap; $("a_fee").value = e.fee; $("a_map").value = e.mapUrl;
@@ -1473,7 +1474,7 @@ function adminSave(mode){
     A_IMG = ""; A_RATIO = ""; COPY_FROM = ""; $("a_rmimg").checked = false;
     $("a_ev").value = d.name;
     renderAdmin(st);
-    $("a_copywrap").style.display = "block";
+    $("ev_copy").style.display = "inline-block";
     window.scrollTo({ top: 0, behavior: "smooth" });
   }).catch(function(e){ btns.forEach(function(id){ $(id).disabled = false; }); say("エラー: " + e.message); });
 }
