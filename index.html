@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://script.googleusercontent.com">
 <link rel="preload" as="script" href="https://static.line-scdn.net/liff/edge/2/sdk.js">
 <title>沼津JC公式LINE</title>
-<link rel="stylesheet" href="styles.css?v=202609071401">
+<link rel="stylesheet" href="styles.css?v=202609071408">
 </head>
 <body>
 <header id="hdr">沼津JC公式LINE</header>
@@ -166,7 +166,7 @@
     <h3>7. 会員・管理者を増やす</h3>
     <ul>
       <li>会員: トークで「会員合言葉」と送ると合言葉が出る。会員は「会員登録 合言葉 氏名」と送る（メニューが会員用になる）</li>
-      <li>管理者: 「管理者招待」で6桁を出し、相手が「管理者登録 123456」。自分を外すのは「管理者解除」</li>
+      <li>管理者: <span class="kw">👥 会員</span> の「管理者を招待」で6桁を出し（トークで「管理者招待」でも可）、相手が「管理者登録 123456」。自分を外すのは「管理者解除」</li>
       <li>会員を外すのは <span class="kw">👥 会員</span> の「外す」</li>
     </ul>
     <button type="button" class="b_sub" onclick="showView('members')">会員を開く</button>
@@ -184,9 +184,8 @@
   <div class="panel">
     <h3>9. トークで使える言葉（公式LINEのトークに送る）</h3>
     <ul>
-      <li><span class="kw">状況</span> いまの断面　<span class="kw">点検</span> 設定の点検　<span class="kw">まとめ</span> 今すぐ毎朝のまとめ　<span class="kw">目標 10</span> 今年の入会目標</li>
-      <li><span class="kw">対応します 番号</span> 担当になる　<span class="kw">まとめ通知</span> 毎朝のまとめを自分に　<span class="kw">総務担当</span> 引継ぎ文の宛先に自分を</li>
-      <li><span class="kw">管理ヘルプ</span> 使い方の要約　<span class="kw">管理ヘルプ 設定</span> 設定と交代の言葉</li>
+      <li>使うのは5つだけ: <span class="kw">対応します 番号</span> 担当になる　<span class="kw">状況</span> いまの断面　<span class="kw">まとめ通知</span> 毎朝のまとめを自分に　<span class="kw">管理者登録</span> 管理者メニューを出し直す　<span class="kw">管理ヘルプ 設定</span> 設定と交代の言葉</li>
+      <li>それ以外はこの画面で: 招待と合言葉は 会員、目標は 状況・KPI、点検・バックアップ・保持期間・外形監視は 文面・設定 の運用</li>
       <li><span class="kw">確認モード 未入会者／会員／解除</span> 自分だけ扱いを切り替えて、未入会者や会員から見た画面・自動応答を確かめる（12時間で自動解除）</li>
     </ul>
   </div>
@@ -378,7 +377,7 @@
   <section class="vw" data-v="members">
   <h2 id="sec_members">👥 会員</h2>
   <div class="hint">会員は候補者リストに載らず、友だち数の分母からも除きます。会員は公式LINEのトークで「会員登録 合言葉 氏名」と送ると登録されます</div>
-  <div style="margin:4px 0 8px"><button type="button" class="b_sub" onclick="showMemberPass()">会員登録の合言葉を表示</button></div>
+  <div style="margin:4px 0 8px"><button type="button" class="b_sub" onclick="showMemberPass()">会員登録の合言葉を表示</button><button type="button" class="b_sub" onclick="showInvite()">管理者を招待（6桁を表示）</button></div>
   <pre id="mp_out" class="hist" style="display:none;white-space:pre-wrap;font-family:inherit"></pre>
   <div id="a_members"></div>
   <div class="sub">
@@ -442,7 +441,7 @@
 </div>
 <div id="dbg" style="font-size:10px;color:#999;margin-top:20px;word-break:break-all"></div>
 </div>
-<script src="config.js?v=202609071401"></script>
+<script src="config.js?v=202609071408"></script>
 <script>
 // LINEの部品の読込を待たずに、イベント一覧だけの写し（個人情報なし）を先に取りに行く
 var WORKER = (window.JC_CONFIG || {}).WORKER || "";
@@ -452,6 +451,6 @@ try {
 } catch (e) {}
 </script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="app.js?v=202609071401"></script>
+<script src="app.js?v=202609071408"></script>
 </body>
 </html>

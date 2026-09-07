@@ -941,6 +941,11 @@ function renderMembers(st){
     box.appendChild(row);
   });
 }
+function showInvite(){
+  if (!confirm("管理者の招待コード（6桁・24時間・何人でも）を発行します。よろしいですか？")) return;
+  var out = $("mp_out"); out.style.display = "block"; out.textContent = "発行中…";
+  api("liff_admin_ops", { op: "invite" }).then(function(j){ out.textContent = j.text || ""; }).catch(function(e){ out.textContent = "エラー: " + e.message; });
+}
 function showMemberPass(){
   var out = $("mp_out"); out.style.display = "block"; out.textContent = "取得中…";
   api("liff_admin_ops", { op: "member_pass" }).then(function(j){ out.textContent = j.text || ""; }).catch(function(e){ out.textContent = "エラー: " + e.message; });
