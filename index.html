@@ -59,6 +59,11 @@ a.sheet{font-size:13px;color:var(--navy)}
 .tag.cxl{background:#FFEBEE;color:#C62828}
 .tag.man{background:#FFF3E0;color:#E65100}
 .sub{border-top:1px dashed #ddd;margin-top:14px;padding-top:10px}
+#toast{position:fixed;left:16px;right:16px;bottom:16px;background:#1f2d3d;color:#fff;padding:10px 14px;border-radius:10px;font-size:13.5px;box-shadow:0 4px 16px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:99;white-space:pre-wrap}
+#toast.on{opacity:1;transform:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip.btn{cursor:pointer;background:#e6ecf2;color:var(--navy);margin-top:0}
+.chip.btn.sel{background:var(--navy);color:#fff}
 .tx-grp{padding:10px 12px}
 .tx-row{padding:8px 6px;border-top:1px solid #eef1f5;cursor:pointer;border-radius:6px}
 .tx-row:first-of-type{border-top:0}
@@ -84,6 +89,8 @@ a.sheet{font-size:13px;color:var(--navy)}
   #admin_ui > section.vw{grid-column:2}
   #admin_ui > section.vw.on{display:block}
   #admin_ui > #dbg, #admin_ui > .hint, #admin_ui > #health_banner{grid-column:1 / -1}
+  #toast{left:auto;right:20px;bottom:20px;max-width:380px}
+  #ev_right > #pv_wrap{background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin:0 0 12px}
   #admin_ui > section[data-v="help"].on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
   #admin_ui > section[data-v="help"] > h2, #admin_ui > section[data-v="help"] > .hint{grid-column:1 / -1}
   #admin_ui > section[data-v="event"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
@@ -353,12 +360,13 @@ a.sheet{font-size:13px;color:var(--navy)}
   <section class="vw" data-v="todo">
   <h2 id="sec_todo">📌 要対応 <span id="todo_count" class="hint" style="font-weight:normal"></span></h2>
   <div class="hint">期限が今日か過ぎている人が上。「私が対応します」で担当を取り、中身の更新は「詳細」で</div>
+  <div id="todo_scope" class="chips"></div>
   <div id="a_cases"></div>
   <details id="todo_future" style="display:none"><summary style="padding:6px 0" id="todo_future_sum">予定</summary><div id="a_cases_future"></div></details>
   </section>
   <section class="vw" data-v="event">
   <h2 id="sec_event">🎪 イベント登録・配信</h2>
-  <div class="panel">
+  <div class="panel" id="ev_form">
     <div class="t">イベント登録・配信</div>
     <div id="ev_table"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
@@ -389,10 +397,10 @@ a.sheet{font-size:13px;color:var(--navy)}
     <div id="a_copywrap" style="display:none"><button type="button" class="b_sub" onclick="adminCopy()">このイベントを複製して新規作成</button></div>
     </details>
     <label>チラシ・画像（任意）</label><input id="a_img" type="file" accept="image/*">
-    <div class="hint">配信カードに載ります（自動で縮小）。見え方は下のプレビューで</div>
+    <div class="hint">配信カードに載ります（自動で縮小）。見え方はプレビューで確認</div>
     <img id="a_prev">
 
-    <details open style="margin-top:16px"><summary class="t" style="cursor:pointer">配信カードのプレビュー（LINEでの見え方）</summary>
+    <details open id="pv_wrap" style="margin-top:16px"><summary class="t" style="cursor:pointer">配信カードのプレビュー（LINEでの見え方）</summary>
     <div id="pv" class="card" style="margin-top:8px;border:1px solid #dde3ea">
       <img id="pv_img" style="display:none;max-height:220px;object-fit:contain;background:#f3f6f9">
       <div class="cb">
@@ -412,6 +420,7 @@ a.sheet{font-size:13px;color:var(--navy)}
     <button id="a_savebc" onclick="adminSave('all')">保存して、今すぐ全員に配信する</button>
   </div>
 
+  <div id="ev_right">
   <div class="panel" id="apl_panel" style="display:none">
     <div class="t" id="apl_title">申込者一覧</div>
     <div id="apl_stats" class="hint"></div>
@@ -447,11 +456,13 @@ a.sheet{font-size:13px;color:var(--navy)}
       <button id="a_send" onclick="adminMessage()" style="background:var(--blue);color:#fff;width:100%;margin-top:8px">申込者に送信する</button>
     </div>
   </div>
+  </div>
   </section>
   <section class="vw" data-v="cases">
   <h2 id="sec_cases">📋 候補者一覧 <button type="button" onclick="openDetail('')" style="font-size:12px;padding:4px 8px;margin-left:8px">＋ 追加</button></h2>
   <div class="hint">名簿。名前・会社で検索、段階・担当で絞り込み。行を押すと詳細（見る・更新する）</div>
   <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><input id="a_q" placeholder="名前・会社・担当で検索" oninput="renderAll()" style="flex:2 1 160px"><select id="a_tanto" onchange="renderAll()" style="flex:1 1 120px"><option value="">担当：すべて</option></select><select id="a_stage" onchange="renderAll()" style="flex:1 1 120px"><option value="">全段階</option></select></div>
+  <div id="stage_chips" class="chips"></div>
   <div id="a_all"></div>
 
   <div id="case_detail" style="display:none;position:fixed;inset:0;background:#fff;overflow:auto;z-index:50;padding:12px 14px 40px">
@@ -579,7 +590,15 @@ var API = "https://script.google.com/macros/s/AKfycbziKZweNT8sibVn54UrfNpQMsTxtx
 var TOKEN = "", STATE = null, TARGET = "", MODE = "user", VIEW = "", VIEW_DONE = false, A_IMG = "", A_RATIO = "", COPY_FROM = "";
 var DBG = {};
 function $(id){ return document.getElementById(id); }
-function say(t){ $("msg").textContent = t; }
+var TODO_SCOPE = (function(){ try { return localStorage.getItem("jc_todo_scope") || "mine"; } catch (e) { return "mine"; } })();
+var TOAST_T = null;
+// 操作の結果は右下（スマホは下）に数秒出す。読み込み中などの途中経過（末尾「…」）は出さない
+function toast(t){
+  var box = $("toast"); if (!box){ box = document.createElement("div"); box.id = "toast"; document.body.appendChild(box); }
+  box.textContent = t; box.classList.add("on");
+  clearTimeout(TOAST_T); TOAST_T = setTimeout(function(){ box.classList.remove("on"); }, 4000);
+}
+function say(t){ $("msg").textContent = t; if (MODE === "admin" && t && !/…$/.test(t) && !/^こんにちは/.test(t)) toast(t); }
 function showDbg(extra){ var d = $("dbg"); if (!d) return; d.textContent = "mode=" + MODE + (extra ? " / " + extra : "") + (DBG.state ? " / state=" + DBG.state : ""); }
 window.onerror = function(m, src, line){ say("エラー: " + m + " (line " + line + ")"); };
 window.addEventListener("unhandledrejection", function(ev){ say("Promiseエラー: " + (ev.reason && ev.reason.message ? ev.reason.message : ev.reason)); });
@@ -1103,12 +1122,32 @@ function todoCard(c){
 }
 function renderCases(st){
   var box = $("a_cases"), fbox = $("a_cases_future"); if (!box) return; box.innerHTML = ""; fbox.innerHTML = "";
-  var list = st.cases || [];
-  var now = list.filter(function(c){ return c.overdue === null || c.overdue === undefined || c.overdue >= 0; });
-  var later = list.filter(function(c){ return !(c.overdue === null || c.overdue === undefined || c.overdue >= 0); });
-  $("todo_count").textContent = now.length ? "（" + now.length + "件）" : "";
-  var nav = $("nav_todo"); if (nav) nav.textContent = now.length ? "（" + now.length + "）" : "";
-  if (!now.length) box.appendChild(el("div", "hint", "今日やることはありません"));
+  var all = st.cases || [], me = myName();
+  var isDue = function(c){ return c.overdue === null || c.overdue === undefined || c.overdue >= 0; };
+  var mine = all.filter(function(c){ return !c.tanto || (me && c.tanto === me); });
+  var scope = (!me || TODO_SCOPE === "all") ? "all" : "mine";
+  var list = scope === "all" ? all : mine;
+  // 切替チップ（管理者が増えても自分の分だけ見られる。既定は自分の担当＋担当なし）
+  var sc = $("todo_scope");
+  if (sc){ sc.innerHTML = "";
+    if (me) [["mine", "自分の担当＋担当なし", mine.filter(isDue).length], ["all", "全員分", all.filter(isDue).length]].forEach(function(o){
+      var b = el("span", "chip btn" + (scope === o[0] ? " sel" : ""), o[1] + "（" + o[2] + "）");
+      b.onclick = function(){ TODO_SCOPE = o[0]; try { localStorage.setItem("jc_todo_scope", TODO_SCOPE); } catch (e) {} renderCases(STATE); };
+      sc.appendChild(b);
+    });
+  }
+  var now = list.filter(isDue);
+  var later = list.filter(function(c){ return !isDue(c); });
+  var nowAll = all.filter(isDue).length;
+  $("todo_count").textContent = nowAll ? "（" + nowAll + "件）" : "";
+  var nav = $("nav_todo"); if (nav) nav.textContent = nowAll ? "（" + nowAll + "）" : "";
+  if (!now.length){
+    var emp = el("div", "panel");
+    emp.appendChild(el("div", "", scope === "mine" && nowAll ? "自分の担当で今日やることはありません（全員分では " + nowAll + " 件）" : "今日やることはありません"));
+    var un = (st.all || []).filter(function(c){ return !c.tanto && !/^(7 |辞退)/.test(String(c.status || "")); }).length;
+    if (un){ var b1 = el("button", "b_sub", "担当なしの候補者 " + un + " 人を見る"); b1.onclick = function(){ showView("cases"); var t = $("a_tanto"); if (t){ t.value = "__none__"; } renderAll(); }; emp.appendChild(b1); }
+    box.appendChild(emp);
+  }
   now.forEach(function(c){ box.appendChild(todoCard(c)); });
   $("todo_future").style.display = later.length ? "block" : "none";
   $("todo_future_sum").textContent = "予定 " + later.length + "件（期限が先）";
@@ -1137,6 +1176,13 @@ function renderAll(){
     if (!q) return true;
     return [c.name, c.company, c.tanto, c.gyoshu, c.kikkake, c.shokai].join(" ").toLowerCase().indexOf(q) >= 0;
   });
+  var ch = $("stage_chips");
+  if (ch){ ch.innerHTML = "";
+    var cnt = {}; (STATE.all || []).forEach(function(c){ cnt[c.status] = (cnt[c.status] || 0) + 1; });
+    var mkChip = function(v, label, n){ var b = el("span", "chip btn" + (stage === v ? " sel" : ""), label + " " + n); b.onclick = function(){ sel.value = v; renderAll(); }; ch.appendChild(b); };
+    mkChip("", "全", (STATE.all || []).length);
+    (STATE.statusList || []).forEach(function(v){ if (cnt[v]) mkChip(v, v, cnt[v]); });
+  }
   if (!list.length){ box.appendChild(el("div", "hint", q ? "該当なし（未登録なら「＋ 追加」）" : "まだ候補者がいません")); return; }
   if (window.innerWidth >= 900){ box.appendChild(rosterTable(list)); return; }
   list.slice(0, 200).forEach(function(c){
@@ -1539,7 +1585,13 @@ document.addEventListener("keydown", function(ev){
   if (ev.key === "Escape"){ if (DETAIL_ID !== null && DETAIL_ID !== undefined && $("case_detail").style.display !== "none") closeDetail(); }
   if (ev.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(ev.target && ev.target.tagName || "")){ var q = document.querySelector("section.vw.on input[id$='_q']"); if (q){ ev.preventDefault(); q.focus(); } }
 });
-window.addEventListener("resize", function(){ if (STATE && STATE.all && MODE === "admin") renderAll(); });
+window.addEventListener("resize", function(){ placePreview(); if (STATE && STATE.all && MODE === "admin") renderAll(); });
+// 配信カードのプレビュー: PC では右の列（申込者の上）、スマホではフォームの中（保存ボタンの上）
+function placePreview(){
+  var pv = $("pv_wrap"), right = $("ev_right"), form = $("ev_form"); if (!pv || !right || !form) return;
+  if (window.innerWidth >= 900){ if (pv.parentNode !== right) right.insertBefore(pv, right.firstChild); pv.style.marginTop = "0"; }
+  else if (pv.parentNode !== form){ form.insertBefore(pv, $("a_save")); pv.style.marginTop = "16px"; }
+}
 
 // PCで開きっぱなしでも最新に: 5分ごと（タブが見えているときだけ）。詳細や文面の編集中は次の機会に
 var AUTO_REFRESH_MS = 5 * 60 * 1000;
@@ -1625,6 +1677,7 @@ function sortedEvents(evs){
 function renderAdmin(st){
   var keepY = window.scrollY;
   STATE = st;
+  placePreview();
   // 外形監視（Cloudflare の定期実行が GAS の点検を叩いた結果）。問題があるときだけ上に出す
   var hb = $("health_banner"), h = st.health;
   if (hb){
