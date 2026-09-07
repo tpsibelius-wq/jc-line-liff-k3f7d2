@@ -391,6 +391,19 @@ a.sheet{font-size:13px;color:var(--navy)}
   <div class="hint">画像を差し替えたあとに押すと、通常・管理者・会員の3種を作り直します</div>
   <button type="button" onclick="rebuildMenus()">メニューを作り直す</button>
 
+  <h2 id="sec_ops">🛠 運用（点検・バックアップ・保持期間）</h2>
+  <div class="hint">これまで URL に鍵を付けて開いていた操作。結果は下に出ます。「匿名化」だけは元に戻せないので確認が入ります</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px">
+    <button type="button" class="b_sub" onclick="adminOps('selfcheck')">点検</button>
+    <button type="button" class="b_sub" onclick="adminOps('version')">コード版・最終実行</button>
+    <button type="button" class="b_sub" onclick="adminOps('backup')">バックアップを今取る</button>
+    <button type="button" class="b_sub" onclick="adminOps('retention_check')">保持期間の確認</button>
+    <button type="button" class="b_sub" onclick="adminOps('retention_purge', '保持期間を過ぎた候補者を匿名化します（氏名・会社・連絡先・LINE_userId・メモ。元に戻せません）。実行しますか？')">匿名化を実行</button>
+    <button type="button" class="b_sub" onclick="adminOps('health_run')">外形監視を今実行</button>
+    <button type="button" class="b_sub" onclick="adminOps('webhook')">Webhook URL を表示</button>
+  </div>
+  <pre id="ops_out" class="hist" style="display:none;white-space:pre-wrap;margin-top:8px;font-family:inherit"></pre>
+
   <h2 id="sec_ref">📱 自分の紹介QR・紹介文</h2>
   <div class="panel">
     <div class="hint">会場では画面のQRを見せる。友人には「紹介文をLINEで送る」</div>
@@ -438,7 +451,7 @@ function api(action, payload){
       .then(function(r){ return r.json().catch(function(){ throw new Error("サーバーの応答が読めませんでした。少し待ってからもう一度お試しください"); }); });
   };
   // 申込・キャンセル・管理操作はWorkerが即時に受け付け、裏でGASへ渡す（配信などの結果はトークに届く）。Workerが使えないときはGASへ直接
-  var viaWorker = !!WORKER && (action === "liff_apply" || action === "liff_cancel" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap"));
+  var viaWorker = !!WORKER && (action === "liff_apply" || action === "liff_cancel" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap" && action !== "liff_admin_ops")); // 運用は GAS に直接
   var p = viaWorker
     ? send(WORKER).then(function(j){ if (j && j.error && /no snapshot|worker/.test(j.error)) throw new Error("worker"); return j; }).catch(function(){ return send(API); })
     : send(API);
@@ -636,6 +649,16 @@ function autosizeTA(ta){
 }
 function autosizeAll(){ Array.prototype.forEach.call(document.querySelectorAll("textarea"), autosizeTA); }
 document.addEventListener("input", function(ev){ autosizeTA(ev.target); });
+
+// 運用ボタン（点検・バックアップ・保持期間・外形監視・Webhook）。Worker を通さず GAS に直接
+function adminOps(op, confirmMsg){
+  if (confirmMsg && !confirm(confirmMsg)) return;
+  var out = $("ops_out"); out.style.display = "block"; out.textContent = "実行中…（点検は10秒ほど）";
+  api("liff_admin_ops", { op: op, arg: confirmMsg ? "yes" : "" }).then(function(j){
+    out.textContent = (j.message ? j.message + "\n" : "") + (j.text || "");
+    if (op === "retention_purge") refreshAdmin();
+  }).catch(function(e){ out.textContent = "エラー: " + e.message; });
+}
 
 /* ---------- 参加者モード ---------- */
 
@@ -1189,8 +1212,9 @@ function renderKpi(st){
     box.appendChild(bar("🎯 " + (k.year || "今年") + "年の入会", k.joined, k.target));
     box.appendChild(bar("🤝 " + (k.year || "今年") + "年の面談", k.meetings, k.meetNeed));
     box.appendChild(bar("📋 候補者（進行中）", k.candidates, k.listNeed));
-    box.appendChild(bar("👥 未入会者の友だち", k.friends === null ? 0 : k.friends, k.friendNeed));
-    box.appendChild(el("div", "hint", "面談化率 " + Math.round(k.meetRate * 100) + "%・打率（面談→入会） " + Math.round(k.hitRate * 100) + "%"));
+    if (k.provisional) box.appendChild(el("div", "hint", "👥 未入会者の友だち " + (k.friends === null ? "-" : k.friends) + "人。必要な友だち数は、面談の実績が3件たまってから出します（いまは面談化率が既定値のため）"));
+    else box.appendChild(bar("👥 未入会者の友だち", k.friends === null ? 0 : k.friends, k.friendNeed));
+    box.appendChild(el("div", "hint", (k.provisional ? "暫定: " : "") + "面談化率 " + Math.round(k.meetRate * 100) + "%・打率（面談→入会） " + Math.round(k.hitRate * 100) + "%" + (k.provisional ? "（既定値。実績で自動更新）" : "")));
   } else {
     box.appendChild(el("div", "hint", "目標が未設定です。理事会で決まるまで仮の値でも動きます"));
   }
