@@ -68,7 +68,7 @@ a.sheet{font-size:13px;color:var(--navy)}
   #admin_ui #tabs .tab{text-align:left;padding:10px 12px;font-size:14px}
   #admin_ui > section.vw{grid-column:2}
   #admin_ui > section.vw.on{display:block}
-  #admin_ui > #dbg, #admin_ui > .hint{grid-column:1 / -1}
+  #admin_ui > #dbg, #admin_ui > .hint, #admin_ui > #health_banner{grid-column:1 / -1}
   section[data-v="event"].on{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
   section[data-v="event"] > h2{grid-column:1 / -1}
   section[data-v="event"] > #apl_panel{margin-top:0}
@@ -173,6 +173,7 @@ a.sheet{font-size:13px;color:var(--navy)}
 </div>
 
 <div id="admin_ui">
+  <div id="health_banner" style="display:none;background:#FFF3E0;border:1px solid #E65100;color:#7a2e00;border-radius:8px;padding:10px 12px;margin:0 0 10px;font-size:13px;white-space:pre-wrap"></div>
   <div id="tabs" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px">
     <button type="button" class="tab" data-v="todo" onclick="showView('todo')">📌 要対応<span id="nav_todo"></span></button>
     <button type="button" class="tab" data-v="cases" onclick="showView('cases')">📋 候補者</button>
@@ -534,7 +535,7 @@ function fastBootstrap(action){
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (!j || j.error) throw new Error((j && j.error) || "worker");
-        if (j.snapshotAt && Date.now() - new Date(j.snapshotAt).getTime() > 30 * 60 * 1000) throw new Error("stale"); // 写しの更新が止まっていたらGASから
+        if (j.snapshotAt && Date.now() - new Date(j.snapshotAt).getTime() > 90 * 60 * 1000) throw new Error("stale"); // 写しの更新が止まっていたらGASから
         // 書いた直後は写しの読み出しが最大60秒古いことがある → 手元の方が新しければ手元を使い、30秒後にもう一度取る
         var loc = cacheLoad(MODE); var mine = loc && (loc.snapshotAt || loc.at); var theirs = j.snapshotAt || j.at;
         if (mine && theirs && new Date(theirs).getTime() < new Date(mine).getTime()){
@@ -1402,6 +1403,16 @@ function sortedEvents(evs){
 function renderAdmin(st){
   var keepY = window.scrollY;
   STATE = st;
+  // 外形監視（Cloudflare の定期実行が GAS の点検を叩いた結果）。問題があるときだけ上に出す
+  var hb = $("health_banner"), h = st.health;
+  if (hb){
+    var stale = !!(h && h.at && Date.now() - new Date(h.at).getTime() > 36 * 3600 * 1000);
+    if (h && (!h.reachable || !h.ok || stale)){
+      hb.style.display = "block";
+      hb.textContent = (!h.reachable ? "⚠️ 外形監視: GAS に到達できませんでした（" + String(h.at || "").slice(0, 16) + "）" : stale ? "⚠️ 外形監視の結果が古いです（" + String(h.at).slice(0, 16) + "）。Cloudflare の定期実行を確認" : "⚠️ 直近の点検で問題があります（" + String(h.at || "").slice(0, 16) + "）")
+        + ((h.warnings || []).length ? "\n" + (h.warnings || []).slice(0, 5).join("\n") : "");
+    } else hb.style.display = "none";
+  }
   document.body.classList.add("admin");
   document.title = "管理画面 - 沼津JC公式LINE";
   if (!INTRO_CHECKED){ INTRO_CHECKED = true; showIntro(false); }
