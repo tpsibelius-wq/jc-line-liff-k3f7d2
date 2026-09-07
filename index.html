@@ -410,6 +410,9 @@ window.addEventListener("unhandledrejection", function(ev){ say("Promiseエラ�
 function api(action, payload){
   return READY.then(function(){
   var body = Object.assign({ action: action, token: TOKEN }, payload || {});
+  // 二重実行防止の合言葉（Worker 経由でも GAS 直接でも同じ値。サーバーが6時間おぼえる）
+  var isWrite = action === "liff_apply" || action === "liff_cancel" || action === "liff_survey" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap");
+  if (isWrite) body.idem = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   var send = function(url){
     return fetch(url, { method: "POST", body: JSON.stringify(body) })
       .catch(function(){ throw new Error("通信に失敗しました。電波の良い場所でもう一度お試しください"); })
@@ -453,7 +456,7 @@ function cacheLoad(mode){
   try {
     var raw = localStorage.getItem(cacheKey(mode)); if (!raw) return null;
     var o = JSON.parse(raw);
-    if (!o || !o.st || Date.now() - o.t > 24 * 3600 * 1000) return null;
+    if (!o || !o.st || Date.now() - o.t > (mode === "admin" ? 2 : 24) * 3600 * 1000) return null; // 管理者の画面は2時間まで
     return o.st;
   } catch (e) { return null; }
 }
@@ -550,10 +553,15 @@ function boot(){
   var prm0 = parseParams();
   TARGET = prm0.ev; MODE = prm0.p === "admin" ? "admin" : "user"; VIEW = prm0.v || "";
   var cached = cacheLoad(MODE);
-  if (cached){
+  if (cached && MODE !== "admin"){
     FROM_CACHE = true;
-    if (MODE === "admin"){ $("hdr").textContent = "沼津JC 管理メニュー"; renderAdmin(cached); } else { render(cached); }
+    render(cached);
     say("前回の内容を表示しています。最新の情報を確認中…");
+  } else if (cached){
+    // 管理者の画面（候補者の個人情報）は本人確認が済んでから出す
+    FROM_CACHE = true;
+    $("hdr").textContent = "沼津JC 管理メニュー";
+    say("本人確認中…");
   } else {
     say("初期化中…");
     if (MODE === "user" && PUBLIC_PROMISE){
@@ -576,6 +584,7 @@ function boot(){
     showDbg();
     try { sessionStorage.removeItem("relogin"); } catch (e) {}
     if (resumePending()) return;
+    if (cached && MODE === "admin"){ renderAdmin(cached); say("前回の内容を表示しています。最新の情報を確認中…"); }
     if (!cached) say("本人確認中…");
     var done = function(fn){ return function(st){ TM.boot = performance.now(); FRESH = true; fn(st); showTiming(st); }; };
     if (MODE === "admin"){
@@ -593,6 +602,8 @@ function bootFail(e){
   say(navigator.onLine === false ? "通信できません（オフライン）。電波の良い場所でもう一度お試しください" : "エラー: " + (e && e.message ? e.message : e));
   var b = document.createElement("button"); b.className = "join"; b.textContent = "もう一度読み込む"; b.onclick = function(){ location.reload(); };
   $("msg").appendChild(b);
+  // 管理者の画面が出せなかったときは、前回の内容（候補者の個人情報）も消す
+  if (MODE === "admin"){ try { localStorage.removeItem(cacheKey("admin")); } catch (x) {} $("admin_ui").classList.remove("shown"); }
 }
 window.addEventListener("online", function(){ if (!FRESH) location.reload(); });
 
