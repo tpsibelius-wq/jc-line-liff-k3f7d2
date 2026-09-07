@@ -488,13 +488,32 @@ function printRoster(){
   openPrintWindow(html);
 }
 // 申込QR: そのイベントの申込画面に直接飛ぶ LIFF URL（卓上POP・受付での飛び込み用）
+// QR（中央に JCI エンブレム。誤り訂正を H にして中央の欠けを補う。エンブレムが読めなければ素のQRのまま）
+function brandQr(parent, text, size){
+  var holder = el("div", ""); holder.style.display = "inline-block"; parent.appendChild(holder);
+  new QRCode(holder, { text: text, width: size, height: size, correctLevel: QRCode.CorrectLevel.H });
+  var qc = holder.querySelector("canvas"), qi = holder.querySelector("img");
+  if (!qc || !qi) return holder;
+  var em = new Image();
+  em.onload = function(){
+    try {
+      var c = document.createElement("canvas"); c.width = size; c.height = size; var g = c.getContext("2d");
+      g.drawImage(qc, 0, 0, size, size);
+      var box = Math.round(size * 0.26), eh = Math.round(size * 0.2), ew = Math.round(eh * em.width / em.height), cx = Math.round((size - box) / 2);
+      g.fillStyle = "#fff"; g.fillRect(cx, cx, box, box);
+      g.drawImage(em, Math.round((size - ew) / 2), Math.round((size - eh) / 2), ew, eh);
+      qi.src = c.toDataURL("image/png");
+    } catch (e) { /* 失敗しても素のQRのまま */ }
+  };
+  em.src = "assets/emblem_shield.png";
+  return holder;
+}
 function showEventQr(){
   var n = $("a_ev").value; if (!n) return;
   var box = $("ev_qr"); box.style.display = "block"; box.innerHTML = "";
   var url = "https://liff.line.me/" + LIFF_ID + "?ev=" + encodeURIComponent(n);
   var draw = function(){
-    var holder = el("div", ""); holder.style.display = "inline-block"; box.appendChild(holder);
-    new QRCode(holder, { text: url, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+    var holder = brandQr(box, url, 220);
     box.appendChild(el("div", "hint", "「" + n + "」の申込画面に直接飛ぶQR。読み取った人は友だち追加のあと申込画面が開きます。長押し・右クリックで画像を保存"));
     var pb = el("button", "b_sub", "このQRを印刷（A4・1枚）");
     pb.onclick = function(){
@@ -523,7 +542,7 @@ function myRefUrl(){ return GO_URL + "?src=" + encodeURIComponent("紹介_" + (m
 function showMyQr(id){
   var box = $(id); box.style.display = "block"; box.innerHTML = "";
   var draw = function(){
-    new QRCode(box, { text: myRefUrl(), width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+    brandQr(box, myRefUrl(), 220);
     box.appendChild(el("div", "hint", "沼津JC公式LINE 友だち追加（紹介: " + (myName() || "不明") + "）。画面を見せて読み取ってもらってください"));
   };
   if (window.QRCode) return draw();
