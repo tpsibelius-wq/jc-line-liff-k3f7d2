@@ -95,7 +95,7 @@ function resumePending(){
   if (!p || !p.action) return false;
   say("続きを実行しています…");
   if (p.mode === "admin"){
-    MODE = "admin"; $("hdr").textContent = "沼津JC 管理メニュー"; $("user_ui").style.display = "none";
+    MODE = "admin"; $("hdr_t").textContent = "沼津JC 管理メニュー"; $("user_ui").style.display = "none";
     api(p.action, p.payload).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
   } else {
     api(p.action, p.payload).then(function(st){ render(st); if (st && st.done) showDone(st); }).catch(function(e){ say("エラー: " + e.message); });
@@ -171,7 +171,7 @@ function boot(){
   } else if (cached){
     // 管理者の画面（候補者の個人情報）は本人確認が済んでから出す
     FROM_CACHE = true;
-    $("hdr").textContent = "沼津JC 管理メニュー";
+    $("hdr_t").textContent = "沼津JC 管理メニュー";
     say("本人確認中…");
   } else {
     say("初期化中…");
@@ -199,7 +199,7 @@ function boot(){
     if (!cached) say("本人確認中…");
     var done = function(fn){ return function(st){ TM.boot = performance.now(); FRESH = true; fn(st); showTiming(st); }; };
     if (MODE === "admin"){
-      $("hdr").textContent = "沼津JC 管理メニュー";
+      $("hdr_t").textContent = "沼津JC 管理メニュー";
       $("user_ui").style.display = "none";
       fastBootstrap("liff_admin_bootstrap").then(done(renderAdmin)).catch(bootFail);
     } else {
@@ -255,7 +255,7 @@ function adminDeleteEvent(){
 function switchToAdmin(){
   MODE = "admin";
   $("user_ui").style.display = "none";
-  $("hdr").textContent = "沼津JC 管理メニュー";
+  $("hdr_t").textContent = "沼津JC 管理メニュー";
   say("管理画面を読み込み中…");
   fastBootstrap("liff_admin_bootstrap").then(renderAdmin).catch(bootFail);
 }
@@ -409,7 +409,7 @@ function renderMemberView(st){
   var rp = $("ref_panel"), rl = $("ref_list");
   if (!rp || !rl) return;
   if (st.isMember){
-    $("hdr").textContent = "沼津JC 会員メニュー";
+    $("hdr_t").textContent = "沼津JC 会員メニュー";
     rp.style.display = "block";
     var ui = $("user_ui");
     if (rp.previousElementSibling !== $("done")) ui.insertBefore(rp, $("done").nextSibling);
@@ -466,6 +466,7 @@ function handoffText(c){
 
 // ---- イベント当日の道具（受付名簿の印刷・申込QR）----
 function escHtml(v){ return String(v == null ? "" : v).replace(/[&<>"]/g, function(ch){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]; }); }
+function logoImg(){ return "<img src='" + new URL("assets/logo@2x.png", location.href).href + "' style='height:34px;float:left;margin:0 12px 6px 0'>"; }
 function openPrintWindow(html){
   var w = window.open("", "_blank");
   if (!w){ alert("印刷用の画面を開けませんでした。PCのブラウザで開いてください"); return null; }
@@ -479,7 +480,7 @@ function printRoster(){
   var people = rows.reduce(function(n, a){ return n + 1 + (Number(a.dohanCount) || 0); }, 0);
   var html = "<!doctype html><html lang='ja'><head><meta charset='utf-8'><title>受付名簿 " + escHtml(e.name) + "</title>"
     + "<style>body{font-family:sans-serif;margin:14mm 12mm;color:#222}h1{font-size:18px;margin:0 0 4px}.m{color:#555;font-size:13px;margin-bottom:10px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #999;padding:6px 8px;text-align:left;vertical-align:top}th{background:#eee}td.c{width:34px;text-align:center;font-size:16px}@media print{button{display:none}}</style></head><body>"
-    + "<button onclick='window.print()' style='float:right'>印刷</button><h1>受付名簿　" + escHtml(e.name) + "</h1>"
+    + "<button onclick='window.print()' style='float:right'>印刷</button>" + logoImg() + "<h1>受付名簿　" + escHtml(e.name) + "</h1>"
     + "<div class='m'>" + escHtml((e.date || "") + " " + (e.time || "")) + (e.place ? "　" + escHtml(e.place) : "") + "　申込 " + rows.length + "件・" + people + "人</div>"
     + "<table><tr><th>受付</th><th>氏名</th><th>会社</th><th>同伴</th><th>連絡先</th><th>メモ</th></tr>"
     + rows.map(function(a){ return "<tr><td class='c'>☐</td><td>" + escHtml(a.name) + (a.member ? "（会員）" : "") + "</td><td>" + escHtml(a.company || "") + "</td><td>" + (a.dohanCount ? escHtml(a.dohanCount + "名" + (a.dohan ? " " + a.dohan : "")) : "") + "</td><td>" + escHtml(a.contact || "") + "</td><td>" + escHtml((a.manual ? "代理申込 " : "") + (a.memo || "")) + "</td></tr>"; }).join("")
@@ -501,7 +502,7 @@ function showEventQr(){
       var src = img ? (img.src || (img.toDataURL && img.toDataURL())) : "";
       if (!src) return;
       var w = openPrintWindow("<!doctype html><html lang='ja'><head><meta charset='utf-8'><title>" + escHtml(n) + "</title></head><body style='text-align:center;font-family:sans-serif;padding:40px'>"
-        + "<h1 style='font-size:28px;margin:0 0 8px'>" + escHtml(n) + "</h1><p style='font-size:18px;margin:0 0 24px'>LINEで読み取って参加申込</p><img src='" + src + "' style='width:80mm;height:80mm'>"
+        + "<div style='margin-bottom:14px'><img src='" + new URL("assets/logo@2x.png", location.href).href + "' style='height:40px'></div><h1 style='font-size:28px;margin:0 0 8px'>" + escHtml(n) + "</h1><p style='font-size:18px;margin:0 0 24px'>LINEで読み取って参加申込</p><img src='" + src + "' style='width:80mm;height:80mm'>"
         + "<p style='color:#555;margin-top:24px'>沼津青年会議所 会員拡大委員会</p></body></html>");
       if (w) setTimeout(function(){ try { w.print(); } catch (e) {} }, 400);
     };
@@ -654,7 +655,7 @@ function printCases(){
   var sorted = list.slice().sort(function(a, b){ return String(a.status).localeCompare(String(b.status), "ja") || String(a.name).localeCompare(String(b.name), "ja"); });
   var html = "<!doctype html><html lang='ja'><head><meta charset='utf-8'><title>候補者一覧</title>"
     + "<style>body{font-family:sans-serif;margin:12mm;color:#222}h1{font-size:18px;margin:0 0 4px}.m{color:#555;font-size:12px;margin-bottom:8px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}th{background:#eee}@media print{button{display:none}}</style></head><body>"
-    + "<button onclick='window.print()' style='float:right'>印刷</button><h1>候補者一覧（委員会用）</h1><div class='m'>" + sorted.length + "人　" + new Date().toLocaleString("ja-JP") + "　個人情報のため、使用後は回収して処分してください</div>"
+    + "<button onclick='window.print()' style='float:right'>印刷</button>" + logoImg() + "<h1>候補者一覧（委員会用）</h1><div class='m'>" + sorted.length + "人　" + new Date().toLocaleString("ja-JP") + "　個人情報のため、使用後は回収して処分してください</div>"
     + "<table><tr><th>番号</th><th>氏名（会社）</th><th>段階</th><th>担当</th><th>次にやること</th><th>期限</th><th>更新</th><th>メモ（末尾）</th></tr>"
     + sorted.map(function(c){ return "<tr><td>" + escHtml(c.id) + "</td><td>" + escHtml(c.name + (c.company ? "（" + c.company + "）" : "")) + "</td><td>" + escHtml(c.status) + "</td><td>" + escHtml(c.tanto || "") + "</td><td>" + escHtml(c.next || "") + "</td><td>" + escHtml(c.due || "") + (c.overdue > 0 ? "（" + c.overdue + "日超過）" : "") + "</td><td>" + escHtml(c.updated || "") + "</td><td>" + escHtml(String(c.memoFull || c.memo || "").slice(-60)) + "</td></tr>"; }).join("")
     + "</table></body></html>";
@@ -1229,6 +1230,7 @@ function updatePreview(){
   $("pv_btn").textContent = "参加する" + (dl ? "（締切" + jpDate(dl) + "）" : "");
   $("pv_map").style.display = /^https?:\/\//.test($("a_map").value.trim()) ? "block" : "none";
   var src = $("a_rmimg").checked ? "" : (A_IMG || ($("a_prev").style.display === "block" ? $("a_prev").src : ""));
+  if (!src && !$("a_rmimg").checked) src = "assets/banner.png"; // 画像なし＝配信カードにはロゴの既定バナーが載る
   if (src){ $("pv_img").src = src; $("pv_img").style.display = "block"; } else { $("pv_img").style.display = "none"; }
 }
 ["a_name","a_date","a_time","a_place","a_desc","a_deadline","a_fee","a_map","a_cap"].forEach(function(id){ $(id).addEventListener("input", updatePreview); });
