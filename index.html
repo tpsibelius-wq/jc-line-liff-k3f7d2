@@ -62,6 +62,11 @@ a.sheet{font-size:13px;color:var(--navy)}
 #toast{position:fixed;left:16px;right:16px;bottom:16px;background:#1f2d3d;color:#fff;padding:10px 14px;border-radius:10px;font-size:13.5px;box-shadow:0 4px 16px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:99;white-space:pre-wrap}
 #toast.on{opacity:1;transform:none}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+table.kv{width:100%;border-collapse:collapse;font-size:13.5px}
+table.kv td{padding:5px 8px;border-top:1px solid #eee;vertical-align:top;line-height:1.5}
+table.kv tr:first-child td{border-top:0}
+table.kv td:first-child{white-space:nowrap;color:#555;width:34%}
+#cd_info a{color:var(--navy)}
 .chip.btn{cursor:pointer;background:#e6ecf2;color:var(--navy);margin-top:0}
 .chip.btn.sel{background:var(--navy);color:#fff}
 .tx-grp{padding:10px 12px}
@@ -135,6 +140,7 @@ a.sheet{font-size:13px;color:var(--navy)}
   table.roster th{background:#e6ecf2;color:var(--navy);text-align:left;padding:6px 8px;cursor:pointer;white-space:nowrap;user-select:none}
   table.roster td{padding:5px 8px;border-top:1px solid #eee;vertical-align:top}
   table.roster tr.row:hover{background:#f3f6f9;cursor:pointer}
+  table.roster th{position:sticky;top:0;z-index:1}
 }
 .print-only{display:none}
 @media print {
@@ -511,7 +517,9 @@ a.sheet{font-size:13px;color:var(--navy)}
   </section>
   <section class="vw" data-v="members">
   <h2 id="sec_members">👥 会員</h2>
-  <div class="hint">会員は候補者リストに載らず、友だち数の分母からも除きます。会員登録の合言葉はトークで「会員合言葉」と送ると出ます</div>
+  <div class="hint">会員は候補者リストに載らず、友だち数の分母からも除きます。会員は公式LINEのトークで「会員登録 合言葉 氏名」と送ると登録されます</div>
+  <div style="margin:4px 0 8px"><button type="button" class="b_sub" onclick="showMemberPass()">会員登録の合言葉を表示</button></div>
+  <pre id="mp_out" class="hist" style="display:none;white-space:pre-wrap;font-family:inherit"></pre>
   <div id="a_members"></div>
   <div class="sub">
     <div class="t" style="font-size:14px">会員全員に連絡する（委員会→会員。人数分の通数を使います）</div>
@@ -1116,6 +1124,7 @@ function todoCard(c){
   var add = function(label, cls, fn){ var b = el("button", cls, label); b.onclick = fn; row.appendChild(b); };
   if (c.tanto !== myName()) add("私が対応します", "b_att", function(){ caseOp(c.id, "assign", ""); });
   add("対応済み", "b_clr", function(){ if (confirm("「" + c.next + "」を済みにしますか？")) caseOp(c.id, "done", ""); });
+  add("3日後に", "b_clr", function(){ var d = new Date(Date.now() + 3 * 86400000); caseOp(c.id, "update", JSON.stringify({ due: d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") })); });
   add("詳細", "", function(){ openDetail(c.id); });
   card.appendChild(row);
   return card;
@@ -1196,6 +1205,14 @@ function renderAll(){
   if (list.length > 200) box.appendChild(el("div", "hint", "200件まで表示。検索で絞ってください"));
 }
 
+// 日付の相対表示（今日・昨日・N日前。60日を超えたら日付のまま）
+function relDate(ts, fallback){
+  var t = Number(ts) || 0; if (!t) return fallback || "";
+  var days = Math.floor((Date.now() - t) / 86400000);
+  if (days <= 0) return "今日"; if (days === 1) return "昨日"; if (days <= 60) return days + "日前";
+  return fallback || "";
+}
+
 // 広い画面向けの表（見出しを押すと並べ替え）
 var ROSTER_SORT = { key: "updatedTs", dir: -1 };
 function rosterTable(list){
@@ -1214,7 +1231,12 @@ function rosterTable(list){
   sorted.slice(0, 500).forEach(function(c){
     var r = document.createElement("tr"); r.className = "row"; r.onclick = function(){ openDetail(c.id); };
     var due = c.overdue === null || c.overdue === undefined ? "" : (c.overdue > 0 ? c.due + "（" + c.overdue + "日超過）" : c.overdue === 0 ? "今日" : c.due);
-    [c.name, c.company || "", c.status, c.tanto || "", c.next || "", due, c.updated || ""].forEach(function(v, i){ var td = document.createElement("td"); td.textContent = v; if (i === 5 && c.overdue > 0) td.style.color = "#C0392B"; r.appendChild(td); });
+    [c.name, c.company || "", c.status, c.tanto || "", c.next || "", due, relDate(c.updatedTs, c.updated)].forEach(function(v, i){
+      var td = document.createElement("td"); td.textContent = v;
+      if (i === 5 && c.overdue > 0) td.style.color = "#C0392B"; else if (i === 5 && c.overdue === 0) td.style.color = "#E65100";
+      if (i === 6 && c.stale > 30) td.style.color = "#999";
+      r.appendChild(td);
+    });
     tb.appendChild(r);
   });
   t.appendChild(tb);
@@ -1248,7 +1270,14 @@ function fillDetail(id){
   var line = function(t){ info.appendChild(el("div", "", t)); };
   line("段階: " + c.status + " ／ 担当: " + (c.tanto || "なし") + (c.hasLine ? " ／ LINE紐付あり" : " ／ LINE未紐付"));
   var attrs = [c.gyoshu, c.yakushoku, c.nenrei, c.area, c.kanshin].filter(String).join("・"); if (attrs) line("属性: " + attrs);
-  if (c.contact) line("連絡先: " + c.contact);
+  if (c.contact){
+    var cdv = el("div", "", "連絡先: "), ct = String(c.contact).trim();
+    if (/^[\d\-+\s()（）]{8,}$/.test(ct)){ var ta = el("a", "", ct); ta.href = "tel:" + ct.replace(/[^\d+]/g, ""); cdv.appendChild(ta); }
+    else if (/@/.test(ct)){ var ma = el("a", "", ct); ma.href = "mailto:" + ct; cdv.appendChild(ma); }
+    else cdv.appendChild(document.createTextNode(ct));
+    var cp = el("button", "b_sub", "コピー"); cp.style.marginLeft = "8px"; cp.style.padding = "2px 8px"; cp.style.minHeight = "0"; cp.onclick = function(){ copyText(ct); }; cdv.appendChild(cp);
+    info.appendChild(cdv);
+  }
   if (c.kikkake || c.shokai) line("きっかけ: " + (c.kikkake || "-") + (c.shokai ? " ／ 紹介: " + c.shokai : ""));
   var hist = []; if (c.created) hist.push("登録 " + c.created); if (c.updated) hist.push("更新 " + c.updated + (c.stale > 30 ? "（" + c.stale + "日前）" : "")); if (c.events && c.events.length) hist.push("イベント: " + c.events.join("、"));
   if (hist.length) line(hist.join(" ／ "));
@@ -1340,12 +1369,12 @@ function renderEventTable(st){
   if (wide){
     var t = document.createElement("table"); t.className = "roster";
     var tr = document.createElement("tr");
-    ["開催日", "イベント", "状態", "申込／定員", "配信", "到達", "御礼"].forEach(function(h){ var th = document.createElement("th"); th.textContent = h; tr.appendChild(th); });
+    ["開催日", "イベント", "状態", "申込／定員", "配信", "到達", "御礼", ""].forEach(function(h){ var th = document.createElement("th"); th.textContent = h; tr.appendChild(th); });
     var th_ = document.createElement("thead"); th_.appendChild(tr); t.appendChild(th_);
     var tb = document.createElement("tbody");
     evs.forEach(function(e){
       var r = document.createElement("tr"); r.className = "row"; r.onclick = function(){ $("a_ev").value = e.name; adminLoad(); };
-      [e.date || "", e.name, state(e), e.count + (e.cap ? "／" + e.cap : ""), bc(e), e.reach || "", e.thanksSent || (e.thanksAuto ? "自動" : "しない")].forEach(function(v){ var td = document.createElement("td"); td.textContent = v; r.appendChild(td); });
+      [e.date || "", e.name, state(e), e.count + (e.cap ? "／" + e.cap : ""), bc(e), e.reach || "", e.thanksSent || (e.thanksAuto ? "自動" : "しない"), "編集 ›"].forEach(function(v){ var td = document.createElement("td"); td.textContent = v; r.appendChild(td); });
       tb.appendChild(r);
     });
     t.appendChild(tb); box.appendChild(t);
@@ -1381,11 +1410,18 @@ function renderMembers(st){
   list.forEach(function(m){
     var row = el("div", "apl");
     var nm = el("div", "nm", (m.name || "（氏名未設定）") + "　" + m.role + (m.since ? "・" + m.since : ""));
+    var normN = function(x){ return String(x || "").replace(/（LINE表示名・要確認）/g, "").replace(/[\s　]+/g, ""); };
+    var refs = m.name ? (st.all || []).filter(function(c){ return normN(c.shokai) && normN(c.shokai) === normN(m.name); }) : [];
+    if (refs.length) nm.appendChild(el("span", "tag att", "紹介 " + refs.length + "人（入会 " + refs.filter(function(c){ return /^7 /.test(c.status); }).length + "）"));
     row.appendChild(nm);
     var b1 = el("button", "", "氏名を修正"); b1.onclick = function(){ var n = prompt("氏名（候補者の「ご紹介者」欄と照合します）", m.name || ""); if (n !== null && n.trim()) memberOp("rename", m.uid, n.trim()); }; row.appendChild(b1);
     if (m.role !== "管理者"){ var b2 = el("button", "b_abs", "外す"); b2.onclick = function(){ if (confirm((m.name || "この会員") + " を会員から外しますか？（通常メニューに戻ります）")) memberOp("remove", m.uid, ""); }; row.appendChild(b2); }
     box.appendChild(row);
   });
+}
+function showMemberPass(){
+  var out = $("mp_out"); out.style.display = "block"; out.textContent = "取得中…";
+  api("liff_admin_ops", { op: "member_pass" }).then(function(j){ out.textContent = j.text || ""; }).catch(function(e){ out.textContent = "エラー: " + e.message; });
 }
 function memberOp(op, uid, value){
   if (!uid){ alert("登録直後のため、数秒後に「最新に更新」してから操作してください"); return; }
@@ -1583,6 +1619,9 @@ function fillTplClient(text, ctx){
 
 document.addEventListener("keydown", function(ev){
   if (ev.key === "Escape"){ if (DETAIL_ID !== null && DETAIL_ID !== undefined && $("case_detail").style.display !== "none") closeDetail(); }
+  if (MODE === "admin" && /^[1-7]$/.test(ev.key) && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !/INPUT|TEXTAREA|SELECT/.test(ev.target && ev.target.tagName || "")){
+    showView(["todo", "cases", "event", "members", "stats", "texts", "help"][Number(ev.key) - 1]);
+  }
   if (ev.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(ev.target && ev.target.tagName || "")){ var q = document.querySelector("section.vw.on input[id$='_q']"); if (q){ ev.preventDefault(); q.focus(); } }
 });
 window.addEventListener("resize", function(){ placePreview(); if (STATE && STATE.all && MODE === "admin") renderAll(); });
@@ -1727,7 +1766,14 @@ function renderAdmin(st){
   if (st.targetsText) lines.push("📨 " + st.targetsText);
   lines.push("🔑 管理者: " + (st.admins || []).map(function(a){ return a.name; }).join("、") + "（追加は「管理者招待」、自分を外すのは「管理者解除」）");
   $("a_stats").innerHTML = "";
-  lines.forEach(function(t){ $("a_stats").appendChild(el("div", "", t)); });
+  var kv = document.createElement("table"); kv.className = "kv";
+  lines.forEach(function(t){
+    var tr = document.createElement("tr"), m = String(t).match(/^([^:：]{1,24})[:：]\s*(.*)$/s);
+    if (m){ var a = document.createElement("td"); a.textContent = m[1]; var b = document.createElement("td"); b.textContent = m[2]; tr.appendChild(a); tr.appendChild(b); }
+    else { var c = document.createElement("td"); c.colSpan = 2; c.textContent = t; tr.appendChild(c); }
+    kv.appendChild(tr);
+  });
+  $("a_stats").appendChild(kv);
   $("a_sheet").href = st.sheetUrl;
   renderEventTable(st);
   renderCases(st);
