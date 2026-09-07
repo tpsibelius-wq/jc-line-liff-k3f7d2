@@ -69,13 +69,24 @@ a.sheet{font-size:13px;color:var(--navy)}
   #admin_ui #tabs .tab{text-align:left;padding:8px 10px;font-size:13px;min-height:34px}
   #admin_ui > section.vw{grid-column:2}
   #admin_ui > section.vw.on{display:block}
-  #admin_ui > #dbg, #admin_ui > .hint, #admin_ui > #health_banner{grid-column:1 / -1}
-  section[data-v="event"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
-  section[data-v="event"] > h2{grid-column:1 / -1}
-  section[data-v="event"] > #apl_panel{margin-top:0}
-  section[data-v="stats"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
-  section[data-v="stats"] > h2, section[data-v="stats"] > .hint{grid-column:1 / -1}
-  section[data-v="texts"].on{display:block}
+  #admin_ui > #dbg, #admin_ui > .hint, #admin_ui > #health_banner, #admin_ui > #intro{grid-column:1 / -1}
+  #admin_ui > #intro{order:-1}
+  #admin_ui #tabs{order:0}
+  #admin_ui > section[data-v="event"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+  #admin_ui > section[data-v="event"] > h2{grid-column:1 / -1}
+  #admin_ui > section[data-v="event"] > #apl_panel{margin-top:0}
+  #admin_ui > section[data-v="stats"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+  #admin_ui > section[data-v="stats"] > h2, #admin_ui > section[data-v="stats"] > .hint{grid-column:1 / -1}
+  /* 1カラムの画面は読みやすい幅に。入力欄は用途に合う幅に */
+  #admin_ui > section[data-v="todo"], #admin_ui > section[data-v="members"], #admin_ui > section[data-v="texts"]{max-width:1000px}
+  #admin_ui input:not([type=checkbox]):not([type=file]), #admin_ui select{max-width:560px}
+  #admin_ui input[type=date], #admin_ui input[type=number], #admin_ui input[type=time]{max-width:220px}
+  #admin_ui #a_q, #admin_ui #apl_q{max-width:none}
+  #admin_ui .join, #admin_ui button[style*="width:100%"]{max-width:560px}
+  #a_mmsg{max-width:720px}
+  /* 文面一覧は2段組（縦に長い一覧を半分に） */
+  #a_texts{columns:2;column-gap:24px}
+  #a_texts > *{break-inside:avoid}
   #a_cases, #a_cases_future{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   #a_cases .card, #a_cases_future .card{margin-bottom:0}
   #case_detail{left:auto;width:640px;box-shadow:-4px 0 16px rgba(0,0,0,.15);border-left:1px solid #dde3ea;font-size:13.5px}
@@ -229,7 +240,7 @@ a.sheet{font-size:13px;color:var(--navy)}
     <select id="a_ev" onchange="adminLoad()" style="display:none"><option value="">（新規作成）</option></select>
     <label style="font-weight:normal"><input type="checkbox" id="a_showold" style="width:auto" onchange="renderAdmin(STATE)"> 過去のイベントも表示</label>
     <label>イベント名 ※必須</label><input id="a_name">
-    <div class="hint">※保存後にイベント名を変えると別イベントとして新規作成されます（修正は他の項目で）</div>
+    <div class="hint">読み込んだイベントの名前を変えて保存すると、申込の記録も新しい名前に追随します</div>
     <label>開催日</label><input id="a_date" type="date">
     <label>時間</label><input id="a_time" placeholder="19:00〜21:00">
     <label>場所</label><input id="a_place">
