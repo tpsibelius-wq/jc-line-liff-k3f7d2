@@ -34,6 +34,7 @@ label{display:block;font-size:13px;font-weight:bold;margin:8px 0 2px}
 input,select,textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #bbb;border-radius:6px;font-size:14px}
 textarea{height:72px}
 #formbox,#admin_ui{display:none}
+#admin_ui.shown{display:block}
 .panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
 #send,#a_savebc{background:#C0392B;color:#fff;width:100%;margin-top:12px}
 #a_save{background:var(--navy);color:#fff;width:100%;margin-top:12px}
@@ -62,7 +63,7 @@ a.sheet{font-size:13px;color:var(--navy)}
 @media (min-width: 900px) {
   body{font-size:15px}
   body.admin #wrap{max-width:1180px;padding:16px 24px}
-  #admin_ui{display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:start}
+  #admin_ui.shown{display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:start}
   #admin_ui #tabs{position:sticky;top:12px;flex-direction:column;gap:6px;margin:0}
   #admin_ui #tabs .tab{text-align:left;padding:10px 12px;font-size:14px}
   #admin_ui > section.vw{grid-column:2}
@@ -1394,7 +1395,7 @@ function renderAdmin(st){
   document.title = "管理画面 - 沼津JC公式LINE";
   if (!INTRO_CHECKED){ INTRO_CHECKED = true; showIntro(false); }
   $("user_ui").style.display = "none";
-  $("admin_ui").style.display = "block";
+  $("admin_ui").classList.add("shown");
   showDbg("admin panel rendered");
   if (st.message){ say(st.message); } else { say("管理メニュー（イベントの作成・修正・配信）"); }
   var s = $("a_ev");
