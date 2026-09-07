@@ -63,6 +63,8 @@ a.sheet{font-size:13px;color:var(--navy)}
 #toast.on{opacity:1;transform:none}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 .todo-h{font-size:13px;font-weight:bold;color:var(--navy);margin:10px 0 4px}
+select.asg{width:auto;max-width:160px;padding:4px 6px;font-size:12px;min-height:28px}
+table.roster select.asg{font-size:12.5px}
 table.kv{width:100%;border-collapse:collapse;font-size:13.5px}
 table.kv td{padding:5px 8px;border-top:1px solid #eee;vertical-align:top;line-height:1.5}
 table.kv tr:first-child td{border-top:0}
@@ -1168,6 +1170,24 @@ function showIntro(force){
 }
 
 // ---- 要対応（今日やること・最小カード） ----
+// 担当に選べる人: 会員名簿から（管理者を先に）。いまの担当が名簿に無ければ先頭に足す
+function assigneeNames(current){
+  var ms = (STATE && STATE.members) || [];
+  var names = ms.filter(function(m){ return m.role === "管理者" && m.name; }).map(function(m){ return m.name; })
+    .concat(ms.filter(function(m){ return m.role !== "管理者" && m.name; }).map(function(m){ return m.name; }));
+  if (!names.length) names = ((STATE && STATE.admins) || []).map(function(a){ return a.name; });
+  if (current && names.indexOf(current) < 0) names.unshift(current);
+  return names;
+}
+function assigneeSelect(c, cls){
+  var sel = document.createElement("select"); sel.className = cls || ""; sel.title = "担当を割り当てる";
+  var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "担当なし"; sel.appendChild(o0);
+  assigneeNames(c.tanto).forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = n; sel.appendChild(o); });
+  sel.value = c.tanto || "";
+  sel.onclick = function(ev){ ev.stopPropagation(); };
+  sel.onchange = function(ev){ ev.stopPropagation(); var v = sel.value; if (v === (c.tanto || "")) return; caseOp(c.id, "tanto", v); };
+  return sel;
+}
 function todoCard(c){
   var card = el("div", "card");
   var due = c.overdue === null || c.overdue === undefined ? "" : (c.overdue > 0 ? "（" + c.overdue + "日超過）" : c.overdue === 0 ? "（今日）" : "（期限 " + c.due + "）");
@@ -1176,6 +1196,7 @@ function todoCard(c){
   if (c.handoff) card.appendChild(el("small", "", "🎉 入会後の手順 " + c.handoff.step + "/" + c.handoff.total));
   var row = el("div", "apl");
   var add = function(label, cls, fn){ var b = el("button", cls, label); b.onclick = fn; row.appendChild(b); };
+  var asg = assigneeSelect(c, "asg"); row.appendChild(asg);
   if (c.tanto !== myName()) add("私が対応します", "b_att", function(){ caseOp(c.id, "assign", ""); });
   add("対応済み", "b_clr", function(){ if (confirm("「" + c.next + "」を済みにしますか？")) caseOp(c.id, "done", ""); });
   add("3日後に", "b_clr", function(){ var d = new Date(Date.now() + 3 * 86400000); caseOp(c.id, "update", JSON.stringify({ due: d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") })); });
@@ -1288,7 +1309,9 @@ function rosterTable(list){
     var r = document.createElement("tr"); r.className = "row"; r.onclick = function(){ openDetail(c.id); };
     var due = c.overdue === null || c.overdue === undefined ? "" : (c.overdue > 0 ? c.due + "（" + c.overdue + "日超過）" : c.overdue === 0 ? "今日" : c.due);
     [c.name, c.company || "", c.status, c.tanto || "", c.next || "", due, relDate(c.updatedTs, c.updated)].forEach(function(v, i){
-      var td = document.createElement("td"); td.textContent = v;
+      var td = document.createElement("td");
+      if (i === 3){ td.appendChild(assigneeSelect(c, "asg")); r.appendChild(td); return; }
+      td.textContent = v;
       if (i === 5 && c.overdue > 0) td.style.color = "#C0392B"; else if (i === 5 && c.overdue === 0) td.style.color = "#E65100";
       if (i === 6 && c.stale > 30) td.style.color = "#999";
       r.appendChild(td);
@@ -1347,7 +1370,7 @@ function fillDetail(id){
   }
   // 更新フォーム
   var ss = $("cd_status"); ss.innerHTML = ""; (STATE.statusList || []).forEach(function(v){ var o = document.createElement("option"); o.value = v; o.textContent = v; ss.appendChild(o); }); ss.value = c.status;
-  var ts = $("cd_tanto"); ts.innerHTML = "<option value=''>（担当なし）</option>"; var names = (STATE.admins || []).map(function(a){ return a.name; }); if (c.tanto && names.indexOf(c.tanto) < 0) names.unshift(c.tanto); names.forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = n; ts.appendChild(o); }); ts.value = c.tanto || "";
+  var ts = $("cd_tanto"); ts.innerHTML = "<option value=''>（担当なし）</option>"; var names = assigneeNames(c.tanto); if (false) names.unshift(c.tanto); names.forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = n; ts.appendChild(o); }); ts.value = c.tanto || "";
   $("cd_next").value = c.next || ""; $("cd_due").value = c.dueYmd || ""; $("cd_memo").value = "";
   // その他
   $("cd_name").value = c.name; $("cd_company").value = c.company || "";
