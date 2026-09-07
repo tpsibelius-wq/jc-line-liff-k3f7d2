@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://script.googleusercontent.com">
 <link rel="preload" as="script" href="https://static.line-scdn.net/liff/edge/2/sdk.js">
 <title>沼津JC公式LINE</title>
-<link rel="stylesheet" href="styles.css?v=202609071520">
+<link rel="stylesheet" href="styles.css?v=202609071544">
 </head>
 <body>
 <header id="hdr">沼津JC公式LINE</header>
@@ -423,6 +423,7 @@
     <button type="button" class="b_sub" onclick="adminOps('retention_check')">保持期間の確認</button>
     <button type="button" class="b_sub" onclick="adminOps('retention_purge', '保持期間を過ぎた候補者を匿名化します（氏名・会社・連絡先・LINE_userId・メモ。元に戻せません）。実行しますか？')">匿名化を実行</button>
     <button type="button" class="b_sub" onclick="adminOps('health_run')">外形監視を今実行</button>
+    <button type="button" class="b_sub" onclick="adminOps('member_bcast')">会員への配信を切替（A 個別 ⇄ B グループ転送）</button>
     <button type="button" class="b_sub" onclick="adminOps('webhook')">Webhook URL を表示</button>
   </div>
   <pre id="ops_out" class="hist" style="display:none;white-space:pre-wrap;margin-top:8px;font-family:inherit"></pre>
@@ -442,7 +443,7 @@
 </div>
 <div id="dbg" style="font-size:10px;color:#999;margin-top:20px;word-break:break-all"></div>
 </div>
-<script src="config.js?v=202609071520"></script>
+<script src="config.js?v=202609071544"></script>
 <script>
 // LINEの部品の読込を待たずに、イベント一覧だけの写し（個人情報なし）を先に取りに行く
 var WORKER = (window.JC_CONFIG || {}).WORKER || "";
@@ -452,6 +453,6 @@ try {
 } catch (e) {}
 </script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="app.js?v=202609071520"></script>
+<script src="app.js?v=202609071544"></script>
 </body>
 </html>

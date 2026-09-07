@@ -235,7 +235,7 @@ function adminOps(op, confirmMsg){
   var out = $("ops_out"); out.style.display = "block"; out.textContent = "実行中…（点検は10秒ほど）";
   api("liff_admin_ops", { op: op, arg: confirmMsg ? "yes" : "" }).then(function(j){
     out.textContent = (j.message ? j.message + "\n" : "") + (j.text || "");
-    if (op === "retention_purge") refreshAdmin();
+    if (op === "retention_purge" || op === "member_bcast") refreshAdmin();
   }).catch(function(e){ out.textContent = "エラー: " + e.message; });
 }
 
@@ -1026,7 +1026,7 @@ var TEXT_DESC = {
   "定型_御礼": "申込者への連絡で「御礼」を押したときの文", "定型_変更連絡": "「変更連絡」を押したときの文", "定型_アンケート": "「アンケート」を押したときの文", "定型_当日案内": "「当日案内」を押したときの文",
   "入会希望": "この言葉が送られると返す。候補者リストへの登録と要対応はこの文面と関係なく行われる", "JCとは": "この言葉が送られると返す", "問い合わせ": "この言葉が送られると返す"
 };
-var SCENE_KEYS = ["友だち追加", "即応", "紹介文", "入会歓迎", "入会後アンケート", "委員会へ連絡", "自由文の返答", "申込確認の結び", "キャンセル確認", "前日リマインド"];
+var SCENE_KEYS = ["友だち追加", "即応", "紹介文", "会員グループ添え書き", "入会歓迎", "入会後アンケート", "委員会へ連絡", "自由文の返答", "申込確認の結び", "キャンセル確認", "前日リマインド"];
 var PLACEHOLDERS = [["{name}", "相手の名前"], ["{event}", "イベント名"], ["{date}", "開催日"], ["{time}", "時間"], ["{place}", "場所"], ["{fee}", "参加費"], ["{map}", "地図"], ["{liff}", "申込ページ"], ["{admin}", "担当名"], ["{info}", "日時と場所"]];
 var OPEN_TEXT_KEY = null;
 function textByKey(key){ return (STATE && STATE.texts || []).filter(function(t){ return t.key === key; })[0]; }
@@ -1291,6 +1291,7 @@ function renderAdmin(st){
   if (st.dupText) lines.push(st.dupText);
   if (st.worker) lines.push(st.worker);
   if (st.targetsText) lines.push("📨 " + st.targetsText);
+  if (st.memberBcastText) lines.push("📣 " + st.memberBcastText);
   lines.push("🔑 管理者: " + (st.admins || []).map(function(a){ return a.name; }).join("、") + "（追加は「管理者招待」、自分を外すのは「管理者解除」）");
   $("a_stats").innerHTML = "";
   var kv = document.createElement("table"); kv.className = "kv";
