@@ -137,7 +137,7 @@ table.kv td:first-child{white-space:nowrap;color:#555;width:34%}
 }
 .print-only{display:none}
 @media print {
-  header, #tabs, button, #msg, #dbg, .hint { display: none !important; }
+  header, #tabs, button, #msg, #dbg, .hint, #k_target, #toast, #health_banner { display: none !important; }
   .print-only{display:block;font-weight:bold;font-size:16px;margin:0 0 8px}
   #admin_ui{display:block}
   .vw.on{display:block}
