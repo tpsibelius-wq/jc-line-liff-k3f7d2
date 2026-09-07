@@ -492,8 +492,13 @@ function printRoster(){
 function brandQr(parent, text, size){
   var holder = el("div", ""); holder.style.display = "inline-block"; parent.appendChild(holder);
   new QRCode(holder, { text: text, width: size, height: size, correctLevel: QRCode.CorrectLevel.H });
-  var qc = holder.querySelector("canvas"), qi = holder.querySelector("img");
-  if (!qc || !qi) return holder;
+  var qc = holder.querySelector("canvas");
+  if (!qc) return holder; // canvas が使えない環境は素のQR（表描画）のまま
+  var out = document.createElement("img"); out.width = size; out.height = size; out.alt = "QR";
+  try { out.src = qc.toDataURL("image/png"); } catch (e) { return holder; }
+  // qrcodejs 自身の img/canvas は外す（あとから非同期に src を差し替えに来ても、こちらの画像には影響しない）
+  Array.prototype.slice.call(holder.querySelectorAll("img, canvas")).forEach(function(n){ holder.removeChild(n); });
+  holder.appendChild(out);
   var em = new Image();
   em.onload = function(){
     try {
@@ -502,7 +507,7 @@ function brandQr(parent, text, size){
       var box = Math.round(size * 0.26), eh = Math.round(size * 0.2), ew = Math.round(eh * em.width / em.height), cx = Math.round((size - box) / 2);
       g.fillStyle = "#fff"; g.fillRect(cx, cx, box, box);
       g.drawImage(em, Math.round((size - ew) / 2), Math.round((size - eh) / 2), ew, eh);
-      qi.src = c.toDataURL("image/png");
+      out.src = c.toDataURL("image/png");
     } catch (e) { /* 失敗しても素のQRのまま */ }
   };
   em.src = "assets/emblem_shield.png";
