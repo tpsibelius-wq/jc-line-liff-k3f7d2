@@ -902,10 +902,11 @@ function render(st){
     }
     c.appendChild(b); ev.appendChild(c);
   });
-  fillSelect("f_gyoshu", st.gyoshuList, st.prefill.gyoshu);
-  fillSelect("f_kikkake", st.keiroList, st.prefill.kikkake);
-  $("f_name").value = st.prefill.name || $("f_name").value;
-  $("f_company").value = st.prefill.company || $("f_company").value;
+  var pf0 = st.prefill || {}; // 申込歴がない人は空
+  fillSelect("f_gyoshu", st.gyoshuList, pf0.gyoshu);
+  fillSelect("f_kikkake", st.keiroList, pf0.kikkake);
+  $("f_name").value = pf0.name || $("f_name").value;
+  $("f_company").value = pf0.company || $("f_company").value;
   $("f_contact").value = st.prefill.contact || $("f_contact").value;
   $("f_shokai").value = st.prefill.shokai || $("f_shokai").value;
   var h = $("hist"); h.innerHTML = "";
