@@ -15,12 +15,13 @@
 <body>
 <p>LINEの友だち追加画面を開いています…</p>
 <p><a id="lnk" href="#">開かない場合はこちらをタップ</a></p>
+<script src="config.js?v=202609071401"></script>
 <script>
 // QRの飛び先ページ: どのQRから来たか（src）を記録してから、LINEの友だち追加画面へ転送する
 // ADD_URL = LINE公式アカウントの友だち追加URL（Official Account Manager →「友だちを増やす」で表示される lin.ee のURL）
-// 本番移行時はここと、上の meta refresh のURLの2か所を差し替える
-var ADD_URL = "https://lin.ee/NMLj2g7";
-var API = "https://script.google.com/macros/s/AKfycbziKZweNT8sibVn54UrfNpQMsTxtxgBH1CqOtzLK_le7vdHdOj0eN9YbapdpG1twYMw/exec";
+// 本番移行時は config.js の ADD_URL と、上の meta refresh の URL を差し替える（JS が動かない端末向けの保険なので両方）
+var ADD_URL = (window.JC_CONFIG || {}).ADD_URL || "https://lin.ee/NMLj2g7";
+var API = (window.JC_CONFIG || {}).API || "";
 
 var src = "";
 try { src = (new URLSearchParams(location.search).get("src") || "").slice(0, 40); } catch (e) {}

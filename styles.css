@@ -1,0 +1,145 @@
+:root{--navy:#1F4789;--blue:#0097D7} /* JCI Navy / JCI Blue */
+body{font-family:sans-serif;margin:0;background:#f5f7fa;color:#222}
+header{background:var(--navy);color:#fff;padding:14px 16px;font-size:16px;font-weight:bold}
+#wrap{padding:12px;max-width:640px;margin:0 auto}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px;overflow:hidden}
+.card img{width:100%;display:block}
+.cb{padding:12px}
+.t{font-weight:bold;font-size:16px;margin-bottom:4px}
+.m{font-size:13px;color:#555;margin-bottom:2px}
+.chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;margin-top:6px;margin-right:6px}
+.ok{background:#E8F5E9;color:#2E7D32}
+.ng{background:#eee;color:#777}
+button{border:0;border-radius:8px;font-size:14px;font-weight:bold;padding:10px 14px;min-height:40px}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.tab{background:#e6ecf2;color:var(--blue);font-size:13px;padding:8px 10px}
+.tab.on{background:var(--blue);color:#fff}
+.vw{display:none}
+.vw.on{display:block}
+.join{background:var(--navy);color:#fff;width:100%;margin-top:8px}
+.cancel{background:none;color:#C0392B;font-size:13px;padding:6px 0;text-decoration:underline}
+.mapbtn{display:inline-block;margin-top:8px;font-size:13px;color:var(--navy);text-decoration:underline}
+label{display:block;font-size:13px;font-weight:bold;margin:8px 0 2px}
+input,select,textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #bbb;border-radius:6px;font-size:14px}
+textarea{min-height:72px;resize:vertical;line-height:1.5}
+#formbox,#admin_ui{display:none}
+#admin_ui.shown{display:block}
+.panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
+#send,#a_savebc{background:#C0392B;color:#fff;width:100%;margin-top:12px}
+#a_save{background:var(--navy);color:#fff;width:100%;margin-top:12px}
+#a_test{background:var(--blue);color:#fff;width:100%;margin-top:12px}
+h2{font-size:14px;color:var(--navy);margin:16px 0 8px}
+#msg{font-size:13px;color:var(--navy);padding:8px 0;white-space:pre-wrap}
+.hist{font-size:13px;background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px;line-height:1.6}
+.hint{font-size:13px;color:#666;margin-top:2px}
+#a_prev{display:none !important}
+a.sheet{font-size:13px;color:var(--navy)}
+.apl{display:flex;justify-content:space-between;align-items:center;gap:6px;border-bottom:1px solid #eee;padding:8px 0;font-size:13px}
+.apl .nm{flex:1;min-width:0}
+.apl .nm small{color:#777;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.apl button{font-size:12px;padding:6px 8px;border-radius:6px;min-height:32px}
+.b_att{background:#2E7D32;color:#fff}
+.b_abs{background:#999;color:#fff}
+.b_clr{background:#eee;color:#333}
+.b_sub{background:#eee;color:var(--navy);font-size:12px;padding:6px 10px;margin:4px 4px 0 0}
+.tag{font-size:12px;padding:2px 6px;border-radius:8px;background:#eee;color:#555;white-space:nowrap}
+.tag.att{background:#E8F5E9;color:#2E7D32}
+.tag.abs{background:#eee;color:#777}
+.tag.cxl{background:#FFEBEE;color:#C62828}
+.tag.man{background:#FFF3E0;color:#E65100}
+.sub{border-top:1px dashed #ddd;margin-top:14px;padding-top:10px}
+#toast{position:fixed;left:16px;right:16px;bottom:16px;background:#1f2d3d;color:#fff;padding:10px 14px;border-radius:10px;font-size:13.5px;box-shadow:0 4px 16px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:99;white-space:pre-wrap}
+#toast.on{opacity:1;transform:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.todo-h{font-size:13px;font-weight:bold;color:var(--navy);margin:10px 0 4px}
+select.asg{width:auto;max-width:160px;padding:4px 6px;font-size:12px;min-height:28px}
+table.roster select.asg{font-size:12.5px}
+table.kv{width:100%;border-collapse:collapse;font-size:13.5px}
+table.kv td{padding:5px 8px;border-top:1px solid #eee;vertical-align:top;line-height:1.5}
+table.kv tr:first-child td{border-top:0}
+table.kv td:first-child{white-space:nowrap;color:#555;width:34%}
+#cd_info a{color:var(--navy)}
+.chip.btn{cursor:pointer;background:#e6ecf2;color:var(--navy);margin-top:0}
+.chip.btn.sel{background:var(--navy);color:#fff}
+.tx-grp{padding:10px 12px}
+.tx-row{padding:8px 6px;border-top:1px solid #eef1f5;cursor:pointer;border-radius:6px}
+.tx-row:first-of-type{border-top:0}
+.tx-row:hover,.tx-row.on{background:#f3f6f9}
+.tx-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tx-name{font-weight:bold;font-size:14px;color:#1f2d3d}
+.tx-arrow{margin-left:auto;color:#999}
+.tx-body{font-size:13px;color:#444;line-height:1.5;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#tx_side .panel{margin-bottom:10px}
+.guide h3{font-size:14px;margin:0 0 6px;color:var(--navy)}
+.guide ol,.guide ul{margin:0 0 6px;padding-left:20px;line-height:1.75;font-size:13.5px}
+.guide li{margin-bottom:2px}
+.guide .kw{background:#eef3f8;border-radius:4px;padding:0 4px;font-weight:bold}
+.guide .b_sub{margin:6px 6px 0 0}
+/* ---- PC（幅900px以上）: 左に画面の切替、右に内容。イベントは2列、詳細は右の引き出し ---- */
+@media (min-width: 900px) {
+  /* PC: 文字と余白を詰め、1画面に入る量を増やす。入力欄は広く */
+  body{font-size:13.5px}
+  body.admin #wrap{max-width:1440px;padding:12px 20px}
+  #admin_ui.shown{display:grid;grid-template-columns:168px minmax(0,1fr);gap:16px;align-items:start}
+  #admin_ui #tabs{position:sticky;top:10px;flex-direction:column;gap:4px;margin:0}
+  #admin_ui #tabs .tab{text-align:left;padding:8px 10px;font-size:13px;min-height:34px}
+  #admin_ui > section.vw{grid-column:2}
+  #admin_ui > section.vw.on{display:block}
+  #admin_ui > #dbg, #admin_ui > .hint, #admin_ui > #health_banner{grid-column:1 / -1}
+  #toast{left:auto;right:20px;bottom:20px;max-width:380px}
+  #ev_right > #pv_wrap{background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin:0 0 12px}
+  #admin_ui > section[data-v="help"].on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+  #admin_ui > section[data-v="help"] > h2, #admin_ui > section[data-v="help"] > .hint{grid-column:1 / -1}
+  #admin_ui > section[data-v="event"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+  #admin_ui > section[data-v="event"] > h2{grid-column:1 / -1}
+  #admin_ui > section[data-v="event"] > #apl_panel{margin-top:0}
+  #admin_ui > section[data-v="stats"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+  #admin_ui > section[data-v="stats"] > h2, #admin_ui > section[data-v="stats"] > .hint{grid-column:1 / -1}
+  /* 1カラムの画面は読みやすい幅に。入力欄は用途に合う幅に */
+  #admin_ui > section[data-v="todo"], #admin_ui > section[data-v="members"]{max-width:1000px}
+  #admin_ui > section[data-v="texts"].on{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+  #tx_side h2:first-child{margin-top:8px}
+  #tx_side .b_sub{margin:4px 4px 0 0}
+  #admin_ui input:not([type=checkbox]):not([type=file]), #admin_ui select{max-width:560px}
+  #admin_ui input[type=date], #admin_ui input[type=number], #admin_ui input[type=time]{max-width:220px}
+  #admin_ui #a_q, #admin_ui #apl_q{max-width:none}
+  #admin_ui .join, #admin_ui button[style*="width:100%"]{max-width:560px}
+  #a_mmsg{max-width:720px}
+
+  #a_cases, #a_cases_future{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  #a_cases .card, #a_cases_future .card{margin-bottom:0}
+  #a_cases > .todo-h{grid-column:1 / -1;margin:4px 0 0}
+  #case_detail{left:auto;width:640px;box-shadow:-4px 0 16px rgba(0,0,0,.15);border-left:1px solid #dde3ea;font-size:13.5px}
+  h2{font-size:14px;margin:8px 0 6px}
+  .t{font-size:15px}
+  .m{font-size:13px}
+  .hint{font-size:12px}
+  .panel{padding:12px 14px;margin-bottom:10px}
+  .card{margin-bottom:8px}
+  .cb{padding:10px 12px}
+  .hist{font-size:13px;padding:8px 10px;line-height:1.5}
+  .apl{font-size:13.5px;padding:5px 0}
+  .apl button{font-size:12px;min-height:28px}
+  button{font-size:13px;min-height:32px;padding:7px 12px}
+  .join{margin-top:6px}
+  label{font-size:12.5px;margin:6px 0 2px}
+  input,select,textarea{font-size:13.5px;padding:6px 8px}
+  #a_desc{min-height:200px}
+  #a_msg{min-height:150px}
+  #a_mmsg{min-height:110px}
+  #t_text{min-height:240px}
+  details > summary{padding:4px 0}
+  table.roster{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;font-size:13px}
+  table.roster th{background:#e6ecf2;color:var(--navy);text-align:left;padding:6px 8px;cursor:pointer;white-space:nowrap;user-select:none}
+  table.roster td{padding:5px 8px;border-top:1px solid #eee;vertical-align:top}
+  table.roster tr.row:hover{background:#f3f6f9;cursor:pointer}
+  table.roster th{position:sticky;top:0;z-index:1}
+}
+.print-only{display:none}
+@media print {
+  header, #tabs, button, #msg, #dbg, .hint { display: none !important; }
+  .print-only{display:block;font-weight:bold;font-size:16px;margin:0 0 8px}
+  #admin_ui{display:block}
+  .vw.on{display:block}
+  body{background:#fff}
+}
