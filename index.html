@@ -32,7 +32,7 @@ button{border:0;border-radius:8px;font-size:14px;font-weight:bold;padding:10px 1
 .mapbtn{display:inline-block;margin-top:8px;font-size:13px;color:var(--navy);text-decoration:underline}
 label{display:block;font-size:13px;font-weight:bold;margin:8px 0 2px}
 input,select,textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #bbb;border-radius:6px;font-size:14px}
-textarea{height:72px}
+textarea{min-height:72px;resize:vertical;line-height:1.5}
 #formbox,#admin_ui{display:none}
 #admin_ui.shown{display:block}
 .panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
@@ -61,28 +61,46 @@ a.sheet{font-size:13px;color:var(--navy)}
 .sub{border-top:1px dashed #ddd;margin-top:14px;padding-top:10px}
 /* ---- PC（幅900px以上）: 左に画面の切替、右に内容。イベントは2列、詳細は右の引き出し ---- */
 @media (min-width: 900px) {
-  body{font-size:15px}
-  body.admin #wrap{max-width:1180px;padding:16px 24px}
-  #admin_ui.shown{display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:start}
-  #admin_ui #tabs{position:sticky;top:12px;flex-direction:column;gap:6px;margin:0}
-  #admin_ui #tabs .tab{text-align:left;padding:10px 12px;font-size:14px}
+  /* PC: 文字と余白を詰め、1画面に入る量を増やす。入力欄は広く */
+  body{font-size:13.5px}
+  body.admin #wrap{max-width:1440px;padding:12px 20px}
+  #admin_ui.shown{display:grid;grid-template-columns:168px minmax(0,1fr);gap:16px;align-items:start}
+  #admin_ui #tabs{position:sticky;top:10px;flex-direction:column;gap:4px;margin:0}
+  #admin_ui #tabs .tab{text-align:left;padding:8px 10px;font-size:13px;min-height:34px}
   #admin_ui > section.vw{grid-column:2}
   #admin_ui > section.vw.on{display:block}
   #admin_ui > #dbg, #admin_ui > .hint, #admin_ui > #health_banner{grid-column:1 / -1}
-  section[data-v="event"].on{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  section[data-v="event"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
   section[data-v="event"] > h2{grid-column:1 / -1}
   section[data-v="event"] > #apl_panel{margin-top:0}
-  section[data-v="stats"].on{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  section[data-v="stats"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
   section[data-v="stats"] > h2, section[data-v="stats"] > .hint{grid-column:1 / -1}
-  #case_detail{left:auto;width:560px;box-shadow:-4px 0 16px rgba(0,0,0,.15);border-left:1px solid #dde3ea}
+  section[data-v="texts"].on{display:block}
+  #a_cases, #a_cases_future{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  #a_cases .card, #a_cases_future .card{margin-bottom:0}
+  #case_detail{left:auto;width:640px;box-shadow:-4px 0 16px rgba(0,0,0,.15);border-left:1px solid #dde3ea;font-size:13.5px}
+  h2{font-size:14px;margin:8px 0 6px}
+  .t{font-size:15px}
+  .m{font-size:13px}
   .hint{font-size:12px}
-  .apl{font-size:14px}
-  .apl button{font-size:12px}
-  label{font-size:13px}
-  input,select,textarea{font-size:15px}
-  table.roster{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;font-size:14px}
-  table.roster th{background:#e6ecf2;color:var(--navy);text-align:left;padding:8px 10px;cursor:pointer;white-space:nowrap;user-select:none}
-  table.roster td{padding:8px 10px;border-top:1px solid #eee;vertical-align:top}
+  .panel{padding:12px 14px;margin-bottom:10px}
+  .card{margin-bottom:8px}
+  .cb{padding:10px 12px}
+  .hist{font-size:13px;padding:8px 10px;line-height:1.5}
+  .apl{font-size:13.5px;padding:5px 0}
+  .apl button{font-size:12px;min-height:28px}
+  button{font-size:13px;min-height:32px;padding:7px 12px}
+  .join{margin-top:6px}
+  label{font-size:12.5px;margin:6px 0 2px}
+  input,select,textarea{font-size:13.5px;padding:6px 8px}
+  #a_desc{min-height:200px}
+  #a_msg{min-height:150px}
+  #a_mmsg{min-height:110px}
+  #t_text{min-height:240px}
+  details > summary{padding:4px 0}
+  table.roster{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;font-size:13px}
+  table.roster th{background:#e6ecf2;color:var(--navy);text-align:left;padding:6px 8px;cursor:pointer;white-space:nowrap;user-select:none}
+  table.roster td{padding:5px 8px;border-top:1px solid #eee;vertical-align:top}
   table.roster tr.row:hover{background:#f3f6f9;cursor:pointer}
 }
 .print-only{display:none}
@@ -607,6 +625,17 @@ function bootFail(e){
   if (MODE === "admin"){ try { localStorage.removeItem(cacheKey("admin")); } catch (x) {} $("admin_ui").classList.remove("shown"); }
 }
 window.addEventListener("online", function(){ if (!FRESH) location.reload(); });
+
+// textarea は内容に合わせて高さを変える（PC で案内文や文面の全文が見えるように。上限は画面の6割）
+function autosizeTA(ta){
+  if (!ta || ta.tagName !== "TEXTAREA") return;
+  ta.style.height = "auto";
+  var h = Math.min(ta.scrollHeight + 2, Math.round(window.innerHeight * 0.6));
+  var min = parseInt(getComputedStyle(ta).minHeight, 10) || 72;
+  ta.style.height = Math.max(h, min) + "px";
+}
+function autosizeAll(){ Array.prototype.forEach.call(document.querySelectorAll("textarea"), autosizeTA); }
+document.addEventListener("input", function(ev){ autosizeTA(ev.target); });
 
 /* ---------- 参加者モード ---------- */
 
@@ -1240,7 +1269,7 @@ function textEditor(t){
   if (!isNew && TEXT_DESC[t.key]) wrap.appendChild(el("div", "hint", TEXT_DESC[t.key]));
   if (isNew){ wrap.appendChild(el("label", "", "相手が送る言葉（完全一致）")); var k = document.createElement("input"); k.id = "t_key"; k.placeholder = "例: 会費"; wrap.appendChild(k); }
   wrap.appendChild(el("label", "", "本文"));
-  var ta = document.createElement("textarea"); ta.id = "t_text"; ta.rows = 9; ta.value = isNew ? "" : t.text; ta.style.fontSize = "15px"; ta.style.lineHeight = "1.5";
+  var ta = document.createElement("textarea"); ta.id = "t_text"; ta.rows = 9; ta.value = isNew ? "" : t.text; ta.style.fontSize = "14px"; setTimeout(function(){ autosizeTA(ta); }, 0); ta.style.lineHeight = "1.5";
   ta.oninput = function(){ updatePreview(); };
   wrap.appendChild(ta);
   var chips = el("div", "apl"); chips.style.flexWrap = "wrap"; chips.style.marginTop = "6px";
@@ -1559,6 +1588,7 @@ function clearForm(){
 }
 
 function adminLoad(){
+  setTimeout(autosizeAll, 0); // 読み込んだ案内文の長さに欄を合わせる
   var n = $("a_ev").value;
   clearForm();
   $("a_copywrap").style.display = n ? "block" : "none";
