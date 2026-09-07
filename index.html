@@ -579,7 +579,7 @@ table.kv td:first-child{white-space:nowrap;color:#555;width:34%}
     <div id="a_myqr" style="display:none;text-align:center;margin-top:10px"></div>
   </div>
 
-  <div><a id="a_sheet" class="sheet" target="_blank" rel="noopener">▶ スプレッドシートを開く（集計・月次・削除など）</a></div>
+  <div><a id="a_sheet" class="sheet" target="_blank" rel="noopener">▶ スプレッドシートを開く（集計・月次）</a></div>
   </div>
   </section>
 
@@ -611,7 +611,7 @@ function toast(t){
   clearTimeout(TOAST_T); TOAST_T = setTimeout(function(){ box.classList.remove("on"); }, 4000);
 }
 function say(t){ $("msg").textContent = t; if (MODE === "admin" && t && !/…$/.test(t) && !/^こんにちは/.test(t)) toast(t); }
-function showDbg(extra){ var d = $("dbg"); if (!d) return; d.textContent = "mode=" + MODE + (extra ? " / " + extra : "") + (DBG.state ? " / state=" + DBG.state : ""); }
+function showDbg(extra){ var d = $("dbg"); if (!d || !/[?&]dbg=1/.test(location.search)) return; /* 開発時だけ（?dbg=1） */ d.textContent = "mode=" + MODE + (extra ? " / " + extra : "") + (DBG.state ? " / state=" + DBG.state : ""); }
 window.onerror = function(m, src, line){ say("エラー: " + m + " (line " + line + ")"); };
 window.addEventListener("unhandledrejection", function(ev){ say("Promiseエラー: " + (ev.reason && ev.reason.message ? ev.reason.message : ev.reason)); });
 
@@ -1159,7 +1159,7 @@ function showView(v){
   KEEP_SCROLL = false;
 }
 
-// ---- はじめにガイド（初回だけ。「？」でいつでも） ----
+// ---- 使い方ページ（初回だけ自動で開く。以後は左の「使い方」） ----
 function showIntro(force){
   // 初めて開いたときだけ「使い方」を表示する（URL で画面が指定されているときは除く）。以後は左の「使い方」から
   try { if (!force && localStorage.getItem("jc_intro_done")) return; } catch (e) {}
