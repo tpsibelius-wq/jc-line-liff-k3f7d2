@@ -1601,7 +1601,8 @@ function adminSave(mode){
             cap: $("a_cap").value, fee: $("a_fee").value.trim(), mapUrl: $("a_map").value.trim(),
             scheduleAt: $("a_sched").value || "", active: $("a_active").checked,
             deadlineRemind: $("a_dlremind").checked, thanksAuto: $("a_thanks").checked,
-            imageBase64: A_IMG, imageRatio: A_RATIO, removeImage: $("a_rmimg").checked, copyImageFrom: COPY_FROM };
+            imageBase64: A_IMG, imageRatio: A_RATIO, removeImage: $("a_rmimg").checked, copyImageFrom: COPY_FROM,
+            origName: $("a_ev").value || "" }; // 読み込んだイベントの元の名前（変えたときは申込も追随する）
   if (!d.name){ alert("イベント名は必須です"); return; }
   if (d.mapUrl && !/^https?:\/\//.test(d.mapUrl)){ alert("地図URLは https:// から始まるリンクを入れてください"); return; }
   var cur = curEvent(d.name);
