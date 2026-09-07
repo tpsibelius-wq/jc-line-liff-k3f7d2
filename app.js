@@ -1347,19 +1347,20 @@ function renderApplicants(){
     } else {
       if (a.taio === "参加") row.appendChild(el("span", "tag att", "参加"));
       else if (a.taio === "欠席") row.appendChild(el("span", "tag abs", "欠席"));
-      var bAtt = el("button", "b_att", "参加"); bAtt.onclick = function(){ setAttend(e.name, a.row, "参加"); };
-      var bAbs = el("button", "b_abs", "欠席"); bAbs.onclick = function(){ setAttend(e.name, a.row, "欠席"); };
+      var bAtt = el("button", "b_att", "参加"); bAtt.onclick = function(){ setAttend(e.name, a.row, "参加", a); };
+      var bAbs = el("button", "b_abs", "欠席"); bAbs.onclick = function(){ setAttend(e.name, a.row, "欠席", a); };
       row.appendChild(bAtt); row.appendChild(bAbs);
-      if (a.taio){ var bClr = el("button", "b_clr", "戻す"); bClr.onclick = function(){ setAttend(e.name, a.row, ""); }; row.appendChild(bClr); }
+      if (a.taio){ var bClr = el("button", "b_clr", "戻す"); bClr.onclick = function(){ setAttend(e.name, a.row, "", a); }; row.appendChild(bClr); }
     }
     list.appendChild(row);
   });
 }
 
-function setAttend(ev, row, status){
+function setAttend(ev, row, status, a){
   if (!(row > 0)){ alert("台帳への記録待ちです。数秒後にもう一度お試しください"); return; }
   say("記録中…");
-  api("liff_admin_attend", { ev: ev, row: row, status: status }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
+  // 行番号だけでなく、その人の名前・LINE_userId も渡す（写しが古くて行がずれていても別人に付かない）
+  api("liff_admin_attend", { ev: ev, row: row, status: status, key: a ? { name: a.name || "", uid: a.uid || "" } : {} }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); });
 }
 
 function insertTpl(kind){
@@ -1455,7 +1456,7 @@ function adminSave(mode){
             imageBase64: A_IMG, imageRatio: A_RATIO, removeImage: $("a_rmimg").checked, copyImageFrom: COPY_FROM,
             origName: $("a_ev").value || "" }; // 読み込んだイベントの元の名前（変えたときは申込も追随する）
   if (!d.name){ alert("イベント名は必須です"); return; }
-  if (d.mapUrl && !/^https?:\/\//.test(d.mapUrl)){ alert("地図URLは https:// から始まるリンクを入れてください"); return; }
+  if (d.mapUrl && !/^https:\/\//.test(d.mapUrl)){ alert("地図URLは https:// から始まるリンクを入れてください"); return; }
   var cur = curEvent(d.name);
   if (!$("a_ev").value && cur && !confirm("同じ名前のイベント「" + d.name + "」が既にあります。上書きしますか？")) return;
   if (mode === "all"){
