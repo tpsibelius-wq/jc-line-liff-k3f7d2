@@ -59,6 +59,15 @@ a.sheet{font-size:13px;color:var(--navy)}
 .tag.cxl{background:#FFEBEE;color:#C62828}
 .tag.man{background:#FFF3E0;color:#E65100}
 .sub{border-top:1px dashed #ddd;margin-top:14px;padding-top:10px}
+.tx-grp{padding:10px 12px}
+.tx-row{padding:8px 6px;border-top:1px solid #eef1f5;cursor:pointer;border-radius:6px}
+.tx-row:first-of-type{border-top:0}
+.tx-row:hover,.tx-row.on{background:#f3f6f9}
+.tx-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tx-name{font-weight:bold;font-size:14px;color:#1f2d3d}
+.tx-arrow{margin-left:auto;color:#999}
+.tx-body{font-size:13px;color:#444;line-height:1.5;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#tx_side .panel{margin-bottom:10px}
 /* ---- PC（幅900px以上）: 左に画面の切替、右に内容。イベントは2列、詳細は右の引き出し ---- */
 @media (min-width: 900px) {
   /* PC: 文字と余白を詰め、1画面に入る量を増やす。入力欄は広く */
@@ -78,15 +87,16 @@ a.sheet{font-size:13px;color:var(--navy)}
   #admin_ui > section[data-v="stats"].on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
   #admin_ui > section[data-v="stats"] > h2, #admin_ui > section[data-v="stats"] > .hint{grid-column:1 / -1}
   /* 1カラムの画面は読みやすい幅に。入力欄は用途に合う幅に */
-  #admin_ui > section[data-v="todo"], #admin_ui > section[data-v="members"], #admin_ui > section[data-v="texts"]{max-width:1000px}
+  #admin_ui > section[data-v="todo"], #admin_ui > section[data-v="members"]{max-width:1000px}
+  #admin_ui > section[data-v="texts"].on{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+  #tx_side h2:first-child{margin-top:8px}
+  #tx_side .b_sub{margin:4px 4px 0 0}
   #admin_ui input:not([type=checkbox]):not([type=file]), #admin_ui select{max-width:560px}
   #admin_ui input[type=date], #admin_ui input[type=number], #admin_ui input[type=time]{max-width:220px}
   #admin_ui #a_q, #admin_ui #apl_q{max-width:none}
   #admin_ui .join, #admin_ui button[style*="width:100%"]{max-width:560px}
   #a_mmsg{max-width:720px}
-  /* 文面一覧は2段組（縦に長い一覧を半分に） */
-  #a_texts{columns:2;column-gap:24px}
-  #a_texts > *{break-inside:avoid}
+
   #a_cases, #a_cases_future{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   #a_cases .card, #a_cases_future .card{margin-bottom:0}
   #case_detail{left:auto;width:640px;box-shadow:-4px 0 16px rgba(0,0,0,.15);border-left:1px solid #dde3ea;font-size:13.5px}
@@ -394,11 +404,14 @@ a.sheet{font-size:13px;color:var(--navy)}
   <div id="a_kpi" class="hist"></div>
   </section>
   <section class="vw" data-v="texts">
+  <div id="tx_main">
   <h2 id="sec_texts">✍️ 文面</h2>
   <div class="hint">行を押すとその場で編集できます。保存すると次から新しい文面で送られます</div>
   <div id="a_texts"></div>
   <button type="button" onclick="openText('')" style="margin-top:8px">＋ 自動応答を追加（言葉→返信）</button>
 
+  </div>
+  <div id="tx_side">
   <h2 id="sec_menu">🧭 メニュー</h2>
   <div class="hint">画像を差し替えたあとに押すと、通常・管理者・会員の3種を作り直します</div>
   <button type="button" onclick="rebuildMenus()">メニューを作り直す</button>
@@ -425,6 +438,7 @@ a.sheet{font-size:13px;color:var(--navy)}
   </div>
 
   <div><a id="a_sheet" class="sheet" target="_blank" rel="noopener">▶ スプレッドシートを開く（集計・月次・削除など）</a></div>
+  </div>
   </section>
 
 </div>
@@ -1300,17 +1314,25 @@ function renderTexts(st){
   groups.forEach(function(g){
     var items = list.filter(function(t){ return textGroup(t) === g[0]; });
     if (!items.length && g[0] !== "auto") return;
-    box.appendChild(el("div", "t", g[1]));
-    if (!items.length) box.appendChild(el("div", "hint", "まだありません"));
+    var grp = el("div", "panel tx-grp");
+    grp.appendChild(el("div", "t", g[1]));
+    if (!items.length) grp.appendChild(el("div", "hint", "まだありません"));
     items.forEach(function(t){
-      var row = el("div", "apl"); row.style.cursor = "pointer"; row.style.flexWrap = "wrap";
-      var nm = el("div", "nm", (TEXT_TITLE[t.key] || t.key) + (g[0] === "auto" ? "　「" + t.key + "」" + (t.enabled ? "" : "（停止中）") + (t.notify ? "　📣委員に通知" : "") : ""));
-      nm.appendChild(el("small", "", t.text.replace(/\n/g, " ").slice(0, 44)));
-      row.appendChild(nm); row.appendChild(el("span", "", OPEN_TEXT_KEY === t.key ? "▾" : "›"));
-      row.onclick = function(){ openText(t.key); };
-      box.appendChild(row);
-      if (OPEN_TEXT_KEY === t.key) box.appendChild(textEditor(t));
+      var row = el("div", "tx-row" + (OPEN_TEXT_KEY === t.key ? " on" : "")); row.onclick = function(){ openText(t.key); };
+      var head = el("div", "tx-head");
+      var title = TEXT_TITLE[t.key] || t.key;
+      head.appendChild(el("span", "tx-name", title));
+      if (g[0] === "auto" && title !== t.key) head.appendChild(el("span", "tag", "「" + t.key + "」で反応"));
+      if (g[0] === "auto" && !t.enabled) head.appendChild(el("span", "tag abs", "停止中"));
+      if (g[0] === "auto" && t.notify) head.appendChild(el("span", "tag man", "委員に通知"));
+      if (/委員会で確認して入力/.test(t.text)) head.appendChild(el("span", "tag cxl", "仮の本文・未掲載"));
+      head.appendChild(el("span", "tx-arrow", OPEN_TEXT_KEY === t.key ? "▾" : "›"));
+      row.appendChild(head);
+      row.appendChild(el("div", "tx-body", t.text.replace(/\n+/g, " ／ ")));
+      grp.appendChild(row);
+      if (OPEN_TEXT_KEY === t.key) grp.appendChild(textEditor(t));
     });
+    box.appendChild(grp);
   });
   if (OPEN_TEXT_KEY === "") box.appendChild(textEditor(null));
 }
