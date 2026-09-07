@@ -1106,7 +1106,7 @@ function showEventQr(){
     box.appendChild(pb);
   };
   if (window.QRCode) return draw();
-  var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+  var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; s.integrity = "sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU"; s.crossOrigin = "anonymous";
   s.onload = draw; s.onerror = function(){ box.textContent = "QRの部品を読み込めませんでした。通信環境を確認して開き直してください"; };
   document.head.appendChild(s);
 }
@@ -1125,7 +1125,7 @@ function showMyQr(id){
   };
   if (window.QRCode) return draw();
   var s = document.createElement("script");
-  s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; s.integrity = "sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU"; s.crossOrigin = "anonymous";
   s.onload = draw; s.onerror = function(){ box.textContent = "QRの部品を読み込めませんでした。通信環境を確認して開き直してください"; };
   document.head.appendChild(s);
 }
