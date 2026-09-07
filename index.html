@@ -1208,7 +1208,8 @@ function renderAll(){
 // 日付の相対表示（今日・昨日・N日前。60日を超えたら日付のまま）
 function relDate(ts, fallback){
   var t = Number(ts) || 0; if (!t) return fallback || "";
-  var days = Math.floor((Date.now() - t) / 86400000);
+  var d = new Date(t), n = new Date(); // 暦日で比べる（昨日の夕方の更新は「昨日」）
+  var days = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
   if (days <= 0) return "今日"; if (days === 1) return "昨日"; if (days <= 60) return days + "日前";
   return fallback || "";
 }
