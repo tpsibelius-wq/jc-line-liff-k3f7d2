@@ -22,7 +22,7 @@ function api(action, payload){
   return READY.then(function(){
   var body = Object.assign({ action: action, token: TOKEN }, payload || {});
   // 二重実行防止の合言葉（Worker 経由でも GAS 直接でも同じ値。サーバーが6時間おぼえる）
-  var isWrite = action === "liff_apply" || action === "liff_cancel" || action === "liff_survey" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap");
+  var isWrite = action === "liff_apply" || action === "liff_cancel" || action === "liff_survey" || action === "liff_member_suggest" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap");
   if (isWrite) body.idem = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   var send = function(url){
     return fetch(url, { method: "POST", body: JSON.stringify(body) })
@@ -450,6 +450,17 @@ function sendSurvey(){
   $("sv_send").disabled = true; say("送信中…");
   api("liff_survey", { data: d }).then(function(st){ $("survey").style.display = "none"; render(st); say(st.message || "ありがとうございました"); })
     .catch(function(e){ $("sv_send").disabled = false; say("エラー: " + e.message); });
+}
+
+// ---- 会員の「候補者を教える」 ----
+function sendSuggest(){
+  var d = { name: $("sg_name").value.trim(), company: $("sg_company").value.trim(), relation: $("sg_relation").value.trim(), note: $("sg_note").value.trim() };
+  if (!d.name){ alert("お名前を入力してください"); $("sg_name").focus(); return; }
+  $("sg_send").disabled = true; say("送信中…");
+  api("liff_member_suggest", { data: d }).then(function(st){
+    ["sg_name", "sg_company", "sg_relation", "sg_note"].forEach(function(id){ $(id).value = ""; });
+    $("sg_send").disabled = false; render(st); say(st.message || "登録しました");
+  }).catch(function(e){ $("sg_send").disabled = false; say("エラー: " + e.message); });
 }
 
 // ---- 引継ぎ文（総務・新入会員フォロー担当へ貼って渡す）----

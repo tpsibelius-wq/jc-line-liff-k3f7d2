@@ -9,7 +9,7 @@
 <link rel="preload" as="script" href="https://static.line-scdn.net/liff/edge/2/sdk.js">
 <title>沼津JC公式LINE</title>
 <link rel="icon" href="assets/emblem_shield.png"><link rel="apple-touch-icon" href="assets/oa_icon.png">
-<link rel="stylesheet" href="styles.css?v=202609071723">
+<link rel="stylesheet" href="styles.css?v=202609071748">
 </head>
 <body>
 <header id="hdr"><img src="assets/logo.png" alt="沼津青年会議所" class="hlogo"><span id="hdr_t">沼津JC公式LINE</span></header>
@@ -86,6 +86,15 @@
     <button type="button" onclick="showMyQr('myqr')">自分のQRを表示</button>
     <div id="myqr" style="display:none;text-align:center;margin-top:10px"></div>
     <div id="ref_list" style="display:none;margin-top:12px"></div>
+    <div id="suggest" style="margin-top:14px;border-top:1px solid #e3e8ef;padding-top:10px">
+      <div class="t" style="font-size:14px">候補者を教える（名前だけでOK）</div>
+      <div class="hint">「この人、JC に合いそう」と思う知り合いを教えてください。委員会が候補者リストに載せて、次のイベントにお誘いします。本人にはまだ連絡しません</div>
+      <label>お名前 ※必須</label><input id="sg_name" maxlength="40" placeholder="例: 山田 太郎">
+      <label>会社・お仕事（任意）</label><input id="sg_company" maxlength="60" placeholder="例: ○○商店・飲食">
+      <label>あなたとの関係（任意）</label><input id="sg_relation" maxlength="60" placeholder="例: 高校の同級生、取引先">
+      <label>一言（任意）</label><input id="sg_note" maxlength="200" placeholder="例: 地域の活動に興味がありそう">
+      <button type="button" id="sg_send" onclick="sendSuggest()" style="background:var(--blue);color:#fff;width:100%;margin-top:8px">候補者として伝える</button>
+    </div>
   </div>
 </div>
 
@@ -167,6 +176,7 @@
   <div class="panel">
     <h3>7. 会員・管理者を増やす</h3>
     <ul>
+      <li>会員は会員画面の下の<span class="kw">候補者を教える</span>で知り合いの名前を出せる。要対応の「担当なし」に載り、👤 で届く（本人にはまだ連絡しない）</li>
       <li>会員: トークで「会員合言葉」と送ると合言葉が出る。会員は「会員登録 合言葉 氏名」と送る（メニューが会員用になる）</li>
       <li>管理者: <span class="kw">👥 会員</span> の「管理者を招待」で6桁を出し（トークで「管理者招待」でも可）、相手が「管理者登録 123456」。自分を外すのは「管理者解除」</li>
       <li>会員を外すのは <span class="kw">👥 会員</span> の「外す」</li>
@@ -444,7 +454,7 @@
 </div>
 <div id="dbg" style="font-size:10px;color:#999;margin-top:20px;word-break:break-all"></div>
 </div>
-<script src="config.js?v=202609071723"></script>
+<script src="config.js?v=202609071748"></script>
 <script>
 // LINEの部品の読込を待たずに、イベント一覧だけの写し（個人情報なし）を先に取りに行く
 var WORKER = (window.JC_CONFIG || {}).WORKER || "";
@@ -454,6 +464,6 @@ try {
 } catch (e) {}
 </script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="app.js?v=202609071723"></script>
+<script src="app.js?v=202609071748"></script>
 </body>
 </html>
