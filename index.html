@@ -471,7 +471,7 @@ table.kv td:first-child{white-space:nowrap;color:#555;width:34%}
   </div>
   </section>
   <section class="vw" data-v="cases">
-  <h2 id="sec_cases">📋 候補者一覧 <button type="button" onclick="openDetail('')" style="font-size:12px;padding:4px 8px;margin-left:8px">＋ 追加</button></h2>
+  <h2 id="sec_cases">📋 候補者一覧 <button type="button" onclick="openDetail('')" style="font-size:12px;padding:4px 8px;margin-left:8px">＋ 追加</button> <button type="button" onclick="printCases()" style="font-size:12px;padding:4px 8px" title="いまの絞り込みのまま、委員会用の一覧を印刷">一覧を印刷</button></h2>
   <div class="hint">名簿。名前・会社で検索、段階・担当で絞り込み。行を押すと詳細（見る・更新する）</div>
   <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><input id="a_q" placeholder="名前・会社・担当で検索" oninput="renderAll()" style="flex:2 1 160px"><select id="a_tanto" onchange="renderAll()" style="flex:1 1 120px"><option value="">担当：すべて</option></select><select id="a_stage" onchange="renderAll()" style="flex:1 1 120px"><option value="">全段階</option></select></div>
   <div id="stage_chips" class="chips"></div>
@@ -1179,10 +1179,16 @@ function assigneeNames(current){
   if (current && names.indexOf(current) < 0) names.unshift(current);
   return names;
 }
+// 担当ごとの進行中の件数（入会・辞退以外）。割り当てのときに負荷を見るため
+function assigneeCounts(){
+  var m = {}; ((STATE && STATE.all) || []).forEach(function(c){ if (c.tanto && !/^(7 |辞退)/.test(String(c.status || ""))) m[c.tanto] = (m[c.tanto] || 0) + 1; });
+  return m;
+}
 function assigneeSelect(c, cls){
-  var sel = document.createElement("select"); sel.className = cls || ""; sel.title = "担当を割り当てる";
+  var sel = document.createElement("select"); sel.className = cls || ""; sel.title = "担当を割り当てる（括弧は進行中の件数）";
   var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "担当なし"; sel.appendChild(o0);
-  assigneeNames(c.tanto).forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = n; sel.appendChild(o); });
+  var cnt = assigneeCounts();
+  assigneeNames(c.tanto).forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = n + (cnt[n] ? "（" + cnt[n] + "）" : ""); sel.appendChild(o); });
   sel.value = c.tanto || "";
   sel.onclick = function(ev){ ev.stopPropagation(); };
   sel.onchange = function(ev){ ev.stopPropagation(); var v = sel.value; if (v === (c.tanto || "")) return; caseOp(c.id, "tanto", v); };
@@ -1240,6 +1246,20 @@ function renderCases(st){
 }
 
 // ---- 候補者一覧（名簿・1行） ----
+var LAST_ROSTER = [];
+// 委員会用の一覧を印刷（いまの絞り込みのまま。連絡先は載せない）
+function printCases(){
+  var list = LAST_ROSTER || [];
+  if (!list.length){ alert("表示中の候補者がいません"); return; }
+  var sorted = list.slice().sort(function(a, b){ return String(a.status).localeCompare(String(b.status), "ja") || String(a.name).localeCompare(String(b.name), "ja"); });
+  var html = "<!doctype html><html lang='ja'><head><meta charset='utf-8'><title>候補者一覧</title>"
+    + "<style>body{font-family:sans-serif;margin:12mm;color:#222}h1{font-size:18px;margin:0 0 4px}.m{color:#555;font-size:12px;margin-bottom:8px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}th{background:#eee}@media print{button{display:none}}</style></head><body>"
+    + "<button onclick='window.print()' style='float:right'>印刷</button><h1>候補者一覧（委員会用）</h1><div class='m'>" + sorted.length + "人　" + new Date().toLocaleString("ja-JP") + "　個人情報のため、使用後は回収して処分してください</div>"
+    + "<table><tr><th>番号</th><th>氏名（会社）</th><th>段階</th><th>担当</th><th>次にやること</th><th>期限</th><th>更新</th><th>メモ（末尾）</th></tr>"
+    + sorted.map(function(c){ return "<tr><td>" + escHtml(c.id) + "</td><td>" + escHtml(c.name + (c.company ? "（" + c.company + "）" : "")) + "</td><td>" + escHtml(c.status) + "</td><td>" + escHtml(c.tanto || "") + "</td><td>" + escHtml(c.next || "") + "</td><td>" + escHtml(c.due || "") + (c.overdue > 0 ? "（" + c.overdue + "日超過）" : "") + "</td><td>" + escHtml(c.updated || "") + "</td><td>" + escHtml(String(c.memoFull || c.memo || "").slice(-60)) + "</td></tr>"; }).join("")
+    + "</table></body></html>";
+  openPrintWindow(html);
+}
 function renderAll(){
   var box = $("a_all"); if (!box || !STATE) return; box.innerHTML = "";
   var sel = $("a_stage");
@@ -1268,6 +1288,7 @@ function renderAll(){
     mkChip("", "全", (STATE.all || []).length);
     (STATE.statusList || []).forEach(function(v){ if (cnt[v]) mkChip(v, v, cnt[v]); });
   }
+  LAST_ROSTER = list;
   if (!list.length){ box.appendChild(el("div", "hint", q ? "該当なし（未登録なら「＋ 追加」）" : "まだ候補者がいません")); return; }
   if (window.innerWidth >= 900){ box.appendChild(rosterTable(list)); return; }
   list.slice(0, 200).forEach(function(c){
@@ -1370,7 +1391,7 @@ function fillDetail(id){
   }
   // 更新フォーム
   var ss = $("cd_status"); ss.innerHTML = ""; (STATE.statusList || []).forEach(function(v){ var o = document.createElement("option"); o.value = v; o.textContent = v; ss.appendChild(o); }); ss.value = c.status;
-  var ts = $("cd_tanto"); ts.innerHTML = "<option value=''>（担当なし）</option>"; var names = assigneeNames(c.tanto); if (false) names.unshift(c.tanto); names.forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = n; ts.appendChild(o); }); ts.value = c.tanto || "";
+  var ts = $("cd_tanto"); ts.innerHTML = "<option value=''>（担当なし）</option>"; var names = assigneeNames(c.tanto), cnt_ = assigneeCounts(); if (false) names.unshift(c.tanto); names.forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = n + (cnt_[n] ? "（" + cnt_[n] + "）" : ""); ts.appendChild(o); }); ts.value = c.tanto || "";
   $("cd_next").value = c.next || ""; $("cd_due").value = c.dueYmd || ""; $("cd_memo").value = "";
   // その他
   $("cd_name").value = c.name; $("cd_company").value = c.company || "";
@@ -1381,6 +1402,8 @@ function fillDetail(id){
   var acts = $("cd_actions"); acts.innerHTML = "";
   var add = function(label, cls, fn){ var b = el("button", cls, label); b.onclick = fn; acts.appendChild(b); };
   if (c.hasLine && !/^7 /.test(c.status)) add("会員にする", "b_att", function(){ if (confirm(c.name + " を会員にしますか？（段階は「7 入会」、メニューが会員用に切り替わります）")) caseOp(c.id, "to_member", ""); });
+  if (!/^(7 |辞退)/.test(c.status)) add("面談を記録", "b_att", function(){ recordMeeting(c); });
+  if (!c.hasLine) add("紹介文をLINEで送る", "", function(){ shareReferral(); });
   if (/^[567] /.test(c.status)) add("引継ぎ文をコピー", "", function(){ copyText(handoffText(c)); });
   if (/^7 /.test(c.status)) add("総務へ送る", "", function(){ if (confirm("総務担当に引継ぎ文をLINEで送ります。よろしいですか？")) { say("送信中…"); api("liff_admin_handoff", { id: c.id }).then(renderAdmin).catch(function(e){ say("エラー: " + e.message); }); } });
   add("統合", "", function(){ var t = prompt("残す側の番号（例 C-003）。この人（" + c.id + "）は「辞退・対象外」になり、空欄の情報は残す側に寄せます"); if (!t) return; if (confirm(c.id + " を " + t.trim() + " に統合しますか？")) caseOp(c.id, "merge", t.trim()); });
@@ -1390,6 +1413,20 @@ function fillDetail(id){
     if (!/^1 /.test(c.status) || ev) warn += "\n実際に辞退した人は「辞退・対象外」にして記録を残すのが基本です。";
     if (confirm(warn) && confirm("本当に削除しますか？")) caseOp(c.id, "delete", "force");
   });
+}
+// 面談を記録: 所感をメモに残し、段階を「4 面談済み」に、次にやることと期限（7日後）を1回で
+function recordMeeting(c){
+  var note = prompt("面談の所感（メモに残ります。相手の関心・懸念・約束したことなど）", "");
+  if (note === null) return;
+  var nextTxt = prompt("次にやること（期限は7日後に入ります。あとで直せます）", "例会見学の日程調整");
+  if (nextTxt === null) return;
+  var d = new Date(Date.now() + 7 * 86400000);
+  var due = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  say("記録中…");
+  var memoP = note.trim() ? api("liff_admin_case", { id: c.id, op: "memo", value: "面談: " + note.trim() }) : Promise.resolve(null);
+  memoP.then(function(){ return api("liff_admin_case", { id: c.id, op: "update", value: JSON.stringify({ status: /^[4567] /.test(c.status) ? undefined : "4 面談済み", next: nextTxt.trim(), due: due }) }); })
+    .then(function(st){ renderAdmin(st); say("面談を記録しました（段階4・次にやること・期限7日後）"); })
+    .catch(function(e){ say("エラー: " + e.message); });
 }
 function saveDetail(){
   var c = caseById(DETAIL_ID); if (!c) return;
