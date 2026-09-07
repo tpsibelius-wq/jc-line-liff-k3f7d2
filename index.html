@@ -62,6 +62,7 @@ a.sheet{font-size:13px;color:var(--navy)}
 #toast{position:fixed;left:16px;right:16px;bottom:16px;background:#1f2d3d;color:#fff;padding:10px 14px;border-radius:10px;font-size:13.5px;box-shadow:0 4px 16px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:99;white-space:pre-wrap}
 #toast.on{opacity:1;transform:none}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.todo-h{font-size:13px;font-weight:bold;color:var(--navy);margin:10px 0 4px}
 table.kv{width:100%;border-collapse:collapse;font-size:13.5px}
 table.kv td{padding:5px 8px;border-top:1px solid #eee;vertical-align:top;line-height:1.5}
 table.kv tr:first-child td{border-top:0}
@@ -116,6 +117,7 @@ table.kv td:first-child{white-space:nowrap;color:#555;width:34%}
 
   #a_cases, #a_cases_future{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   #a_cases .card, #a_cases_future .card{margin-bottom:0}
+  #a_cases > .todo-h{grid-column:1 / -1;margin:4px 0 0}
   #case_detail{left:auto;width:640px;box-shadow:-4px 0 16px rgba(0,0,0,.15);border-left:1px solid #dde3ea;font-size:13.5px}
   h2{font-size:14px;margin:8px 0 6px}
   .t{font-size:15px}
@@ -430,6 +432,8 @@ table.kv td:first-child{white-space:nowrap;color:#555;width:34%}
   <div class="panel" id="apl_panel" style="display:none">
     <div class="t" id="apl_title">申込者一覧</div>
     <div id="apl_stats" class="hint"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0"><button type="button" class="b_sub" onclick="printRoster()">受付名簿を印刷</button><button type="button" class="b_sub" onclick="showEventQr()">申込QRを表示</button></div>
+    <div id="ev_qr" style="display:none;text-align:center;margin:8px 0"></div>
     <input id="apl_q" placeholder="名前・会社で絞る（当日の受付用）" oninput="renderApplicants()" style="margin:6px 0">
     <div class="hint">受付で「参加」に。候補者の段階も自動で進みます</div>
     <div id="apl_list"></div>
@@ -1058,6 +1062,55 @@ function handoffText(c){
   return lines.join("\n");
 }
 
+// ---- イベント当日の道具（受付名簿の印刷・申込QR）----
+function escHtml(v){ return String(v == null ? "" : v).replace(/[&<>"]/g, function(ch){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]; }); }
+function openPrintWindow(html){
+  var w = window.open("", "_blank");
+  if (!w){ alert("印刷用の画面を開けませんでした。PCのブラウザで開いてください"); return null; }
+  w.document.open(); w.document.write(html); w.document.close();
+  return w;
+}
+// 受付名簿: 氏名・会社・同伴・連絡先・メモとチェック欄。キャンセルは載せない。氏名順
+function printRoster(){
+  var e = curEvent($("a_ev").value); if (!e) return;
+  var rows = (e.applicants || []).filter(function(a){ return a.taio !== "キャンセル"; }).slice().sort(function(a, b){ return String(a.name).localeCompare(String(b.name), "ja"); });
+  var people = rows.reduce(function(n, a){ return n + 1 + (Number(a.dohanCount) || 0); }, 0);
+  var html = "<!doctype html><html lang='ja'><head><meta charset='utf-8'><title>受付名簿 " + escHtml(e.name) + "</title>"
+    + "<style>body{font-family:sans-serif;margin:14mm 12mm;color:#222}h1{font-size:18px;margin:0 0 4px}.m{color:#555;font-size:13px;margin-bottom:10px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #999;padding:6px 8px;text-align:left;vertical-align:top}th{background:#eee}td.c{width:34px;text-align:center;font-size:16px}@media print{button{display:none}}</style></head><body>"
+    + "<button onclick='window.print()' style='float:right'>印刷</button><h1>受付名簿　" + escHtml(e.name) + "</h1>"
+    + "<div class='m'>" + escHtml((e.date || "") + " " + (e.time || "")) + (e.place ? "　" + escHtml(e.place) : "") + "　申込 " + rows.length + "件・" + people + "人</div>"
+    + "<table><tr><th>受付</th><th>氏名</th><th>会社</th><th>同伴</th><th>連絡先</th><th>メモ</th></tr>"
+    + rows.map(function(a){ return "<tr><td class='c'>☐</td><td>" + escHtml(a.name) + (a.member ? "（会員）" : "") + "</td><td>" + escHtml(a.company || "") + "</td><td>" + (a.dohanCount ? escHtml(a.dohanCount + "名" + (a.dohan ? " " + a.dohan : "")) : "") + "</td><td>" + escHtml(a.contact || "") + "</td><td>" + escHtml((a.manual ? "代理申込 " : "") + (a.memo || "")) + "</td></tr>"; }).join("")
+    + "</table><div class='m' style='margin-top:10px'>印刷 " + new Date().toLocaleString("ja-JP") + "　個人情報のため、使用後は回収して処分してください</div></body></html>";
+  openPrintWindow(html);
+}
+// 申込QR: そのイベントの申込画面に直接飛ぶ LIFF URL（卓上POP・受付での飛び込み用）
+function showEventQr(){
+  var n = $("a_ev").value; if (!n) return;
+  var box = $("ev_qr"); box.style.display = "block"; box.innerHTML = "";
+  var url = "https://liff.line.me/" + LIFF_ID + "?ev=" + encodeURIComponent(n);
+  var draw = function(){
+    var holder = el("div", ""); holder.style.display = "inline-block"; box.appendChild(holder);
+    new QRCode(holder, { text: url, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+    box.appendChild(el("div", "hint", "「" + n + "」の申込画面に直接飛ぶQR。読み取った人は友だち追加のあと申込画面が開きます。長押し・右クリックで画像を保存"));
+    var pb = el("button", "b_sub", "このQRを印刷（A4・1枚）");
+    pb.onclick = function(){
+      var img = holder.querySelector("img") || holder.querySelector("canvas");
+      var src = img ? (img.src || (img.toDataURL && img.toDataURL())) : "";
+      if (!src) return;
+      var w = openPrintWindow("<!doctype html><html lang='ja'><head><meta charset='utf-8'><title>" + escHtml(n) + "</title></head><body style='text-align:center;font-family:sans-serif;padding:40px'>"
+        + "<h1 style='font-size:28px;margin:0 0 8px'>" + escHtml(n) + "</h1><p style='font-size:18px;margin:0 0 24px'>LINEで読み取って参加申込</p><img src='" + src + "' style='width:80mm;height:80mm'>"
+        + "<p style='color:#555;margin-top:24px'>沼津青年会議所 会員拡大委員会</p></body></html>");
+      if (w) setTimeout(function(){ try { w.print(); } catch (e) {} }, 400);
+    };
+    box.appendChild(pb);
+  };
+  if (window.QRCode) return draw();
+  var s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+  s.onload = draw; s.onerror = function(){ box.textContent = "QRの部品を読み込めませんでした。通信環境を確認して開き直してください"; };
+  document.head.appendChild(s);
+}
+
 // ---- 紹介（自分専用QR・紹介文の転送）----
 var GO_URL = location.origin + location.pathname.replace(/[^\/]*$/, "") + "go";
 function myName(){ return (STATE && (STATE.memberName || (STATE.me && STATE.me.name) || (STATE.user && STATE.user.name))) || ""; }
@@ -1158,7 +1211,8 @@ function renderCases(st){
     if (un){ var b1 = el("button", "b_sub", "担当なしの候補者 " + un + " 人を見る"); b1.onclick = function(){ showView("cases"); var t = $("a_tanto"); if (t){ t.value = "__none__"; } renderAll(); }; emp.appendChild(b1); }
     box.appendChild(emp);
   }
-  now.forEach(function(c){ box.appendChild(todoCard(c)); });
+  [["期限超過", now.filter(function(c){ return c.overdue > 0; })], ["今日", now.filter(function(c){ return c.overdue === 0; })], ["期限なし", now.filter(function(c){ return c.overdue === null || c.overdue === undefined; })]]
+    .forEach(function(g){ if (!g[1].length) return; box.appendChild(el("div", "todo-h", g[0] + "（" + g[1].length + "）")); g[1].forEach(function(c){ box.appendChild(todoCard(c)); }); });
   $("todo_future").style.display = later.length ? "block" : "none";
   $("todo_future_sum").textContent = "予定 " + later.length + "件（期限が先）";
   later.forEach(function(c){ fbox.appendChild(todoCard(c)); });
@@ -1285,7 +1339,12 @@ function fillDetail(id){
   if (hist.length) line(hist.join(" ／ "));
   if (c.handoff) line("🎉 入会後の手順 " + c.handoff.step + "/" + c.handoff.total + "（「対応済み」で次へ）");
   if (c.partAfter !== null && c.partAfter !== undefined) line("入会後のイベント参加 " + c.partAfter + "回");
-  if (c.memoFull || c.memo){ var m = el("div", "", "メモ: " + (c.memoFull || c.memo)); m.style.whiteSpace = "pre-wrap"; info.appendChild(m); }
+  if (c.memoFull || c.memo){
+    var parts = String(c.memoFull || c.memo).split(/／|\n/).map(function(x){ return x.trim(); }).filter(String);
+    var mb = el("div", ""); mb.appendChild(el("div", "", "メモ（新しい順）:"));
+    parts.reverse().forEach(function(x){ var li = el("div", "", "・" + x); li.style.cssText = "padding-left:8px;white-space:pre-wrap"; mb.appendChild(li); });
+    info.appendChild(mb);
+  }
   // 更新フォーム
   var ss = $("cd_status"); ss.innerHTML = ""; (STATE.statusList || []).forEach(function(v){ var o = document.createElement("option"); o.value = v; o.textContent = v; ss.appendChild(o); }); ss.value = c.status;
   var ts = $("cd_tanto"); ts.innerHTML = "<option value=''>（担当なし）</option>"; var names = (STATE.admins || []).map(function(a){ return a.name; }); if (c.tanto && names.indexOf(c.tanto) < 0) names.unshift(c.tanto); names.forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = n; ts.appendChild(o); }); ts.value = c.tanto || "";
