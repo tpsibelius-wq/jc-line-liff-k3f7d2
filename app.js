@@ -53,24 +53,37 @@ function api(action, payload){
 }
 
 // ---- 前回の画面をスマホ内に保存し、次回は開いた瞬間に表示（最新は裏で取り直して差し替える）----
-function cacheKey(mode){ return "jc_state_" + mode; }
+// 保存するのは参加者・会員の自分の画面だけ。管理者の画面（候補者の個人情報）は端末に残さず、毎回サーバーの権限確認を待って描く。
+// 共用の端末で別のLINE利用者が開いたときに前の人の内容を見せないよう、キーに本人の userId（ハッシュ）を入れる
+var UID = ""; // liff.getDecodedIDToken().sub のハッシュ。本人確認が済むまで空
+function uidHash(s){ var h = 5381, v = String(s); for (var i = 0; i < v.length; i++) h = ((h * 33) ^ v.charCodeAt(i)) >>> 0; return h.toString(36); }
+function cacheKey(mode){ return "jc_state_" + mode + "_" + UID; }
 function cacheSave(st){
   try {
     if (!st || !st.events || st.publicOnly) return;
     var mode = st.stats ? "admin" : (st.myApplies ? "user" : "");
-    if (!mode) return;
-    var copy = Object.assign({}, st); delete copy.done; delete copy.message; delete copy.serverMs;
-    localStorage.setItem(cacheKey(mode), JSON.stringify({ t: Date.now(), st: copy }));
+    if (mode !== "user" || !UID) return;
+    var copy = Object.assign({}, st); delete copy.done; delete copy.message; delete copy.serverMs; delete copy.pending;
+    var key = cacheKey(mode);
+    // 共用の端末に前の利用者の写しを残さない（自分の分だけにする）
+    for (var i = localStorage.length - 1; i >= 0; i--) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf("jc_state_user_") === 0 && k !== key) localStorage.removeItem(k);
+    }
+    localStorage.setItem(key, JSON.stringify({ t: Date.now(), st: copy }));
   } catch (e) {}
 }
 function cacheLoad(mode){
+  if (mode !== "user" || !UID) return null;
   try {
     var raw = localStorage.getItem(cacheKey(mode)); if (!raw) return null;
     var o = JSON.parse(raw);
-    if (!o || !o.st || Date.now() - o.t > (mode === "admin" ? 2 : 24) * 3600 * 1000) return null; // 管理者の画面は2時間まで
+    if (!o || !o.st || Date.now() - o.t > 24 * 3600 * 1000) return null;
     return o.st;
   } catch (e) { return null; }
 }
+// 旧版が端末に残した管理者の画面・利用者ごとに分かれていない写しを消す（一度きりの後始末）
+try { localStorage.removeItem("jc_state_admin"); localStorage.removeItem("jc_state_user"); } catch (e) {}
 
 // ---- 計測（画面下の薄い文字に出す）----
 var TM = {};
@@ -160,43 +173,34 @@ function fastBootstrap(action){
 function boot(){
   TM.sdk = performance.now();
   if (typeof liff === "undefined"){ say("LIFF SDKが読み込めませんでした。通信環境を確認して開き直してください"); return; }
-  // 前回の画面があれば先に出す（初期化・本人確認を待たない）
+  // 個人情報を含む前回の画面は、誰のものか分かってから（本人確認のあとで）出す。それまでは個人情報のない案内だけを先に出す
   var prm0 = parseParams();
   TARGET = prm0.ev; MODE = prm0.p === "admin" ? "admin" : "user"; VIEW = prm0.v || "";
-  var cached = cacheLoad(MODE);
-  if (cached && MODE !== "admin"){
-    FROM_CACHE = true;
-    render(cached);
-    say("前回の内容を表示しています。最新の情報を確認中…");
-  } else if (cached){
-    // 管理者の画面（候補者の個人情報）は本人確認が済んでから出す
-    FROM_CACHE = true;
-    $("hdr_t").textContent = "沼津JC 管理メニュー";
-    say("本人確認中…");
-  } else {
-    say("初期化中…");
-    if (MODE === "user" && PUBLIC_PROMISE){
-      PUBLIC_PROMISE.then(function(j){
-        if (!j || !j.events || FRESH || STATE) return;
-        FROM_PUBLIC = true;
-        render(j);
-        say("イベント案内を表示しました。本人確認中…");
-      });
-    }
+  say("初期化中…");
+  if (MODE === "user" && PUBLIC_PROMISE){
+    PUBLIC_PROMISE.then(function(j){
+      if (!j || !j.events || FRESH || STATE) return;
+      FROM_PUBLIC = true;
+      render(j);
+      say("イベント案内を表示しました。本人確認中…");
+    });
   }
   liff.init({ liffId: LIFF_ID }).then(function(){
     TM.init = performance.now();
     if (!liff.isLoggedIn()){ say("LINEログインへ移動します…"); liff.login({ redirectUri: location.href }); return; }
     TOKEN = liff.getIDToken();
     if (!TOKEN){ say("本人確認トークンが取得できませんでした。開き直してください"); return; }
+    try { var dec = liff.getDecodedIDToken(); UID = dec && dec.sub ? uidHash(dec.sub) : ""; } catch (e) { UID = ""; }
     READY_RESOLVE();
     var prm = parseParams();
     TARGET = prm.ev || TARGET; MODE = prm.p === "admin" ? "admin" : "user";
     showDbg();
     try { sessionStorage.removeItem("relogin"); } catch (e) {}
     if (resumePending()) return;
-    if (cached && MODE === "admin"){ renderAdmin(cached); say("前回の内容を表示しています。最新の情報を確認中…"); }
-    if (!cached) say("本人確認中…");
+    // 参加者・会員の画面だけ、本人のキャッシュを先に出す（管理者の画面はサーバーが管理権限を確かめてから）
+    var cached = MODE === "user" ? cacheLoad("user") : null;
+    if (cached){ FROM_CACHE = true; render(cached); say("前回の内容を表示しています。最新の情報を確認中…"); }
+    else say("本人確認中…");
     var done = function(fn){ return function(st){ TM.boot = performance.now(); FRESH = true; fn(st); showTiming(st); }; };
     if (MODE === "admin"){
       $("hdr_t").textContent = "沼津JC 管理メニュー";
@@ -213,8 +217,8 @@ function bootFail(e){
   say(navigator.onLine === false ? "通信できません（オフライン）。電波の良い場所でもう一度お試しください" : "エラー: " + (e && e.message ? e.message : e));
   var b = document.createElement("button"); b.className = "join"; b.textContent = "もう一度読み込む"; b.onclick = function(){ location.reload(); };
   $("msg").appendChild(b);
-  // 管理者の画面が出せなかったときは、前回の内容（候補者の個人情報）も消す
-  if (MODE === "admin"){ try { localStorage.removeItem(cacheKey("admin")); } catch (x) {} $("admin_ui").classList.remove("shown"); }
+  // 権限の確認ができなかったときは管理画面を閉じる（管理者の内容は端末に保存していない）
+  if (MODE === "admin"){ $("admin_ui").classList.remove("shown"); }
 }
 window.addEventListener("online", function(){ if (!FRESH) location.reload(); });
 
@@ -235,7 +239,7 @@ function adminOps(op, confirmMsg){
   var out = $("ops_out"); out.style.display = "block"; out.textContent = "実行中…（点検は10秒ほど）";
   api("liff_admin_ops", { op: op, arg: confirmMsg ? "yes" : "" }).then(function(j){
     out.textContent = (j.message ? j.message + "\n" : "") + (j.text || "");
-    if (op === "retention_purge" || op === "member_bcast") refreshAdmin();
+    if (op === "retention_purge" || op === "member_bcast" || op === "resend") refreshAdmin();
   }).catch(function(e){ out.textContent = "エラー: " + e.message; });
 }
 
@@ -392,11 +396,15 @@ function showDone(st){
   if (!dn) return;
   var e = STATE.events.filter(function(x){ return x.name === dn.event; })[0];
   var my = STATE.myApplies ? STATE.myApplies[dn.event] : null;
-  $("done_title").textContent = dn.isUpdate ? "申込内容を変更しました" : "申込完了！ありがとうございます";
+  // pending＝Cloudflare が受付を預かった段階（台帳への確定はこのあと）。確定していないものを「完了」と書かない
+  var pend = !!st.pending;
+  $("done_title").textContent = pend ? (dn.isUpdate ? "変更を受け付けました" : "受付を送りました") : (dn.isUpdate ? "申込内容を変更しました" : "申込完了！ありがとうございます");
   var lines = ["【" + dn.event + "】"];
   if (e){ lines.push("📅 " + e.date + " " + e.time, "📍 " + e.place); if (e.fee) lines.push("💰 参加費 " + e.fee); }
   if (my && my.dohanCount > 0) lines.push("👥 同伴 " + my.dohanCount + "名" + (my.dohan ? "（" + my.dohan + "）" : ""));
-  lines.push("", "確認メッセージがまもなくトークに届きます。変更・キャンセルはこの画面からいつでもできます。");
+  lines.push("", pend
+    ? "確定すると、確認のメッセージがLINEのトークに届きます（ふつうは数秒）。届かないときはこの画面を開き直すか、委員会にご連絡ください。変更・キャンセルはこの画面からできます。"
+    : "確認メッセージがまもなくトークに届きます。変更・キャンセルはこの画面からいつでもできます。");
   $("done_body").textContent = lines.join("\n");
   var cal = $("done_cal");
   if (e && e.calUrl){ cal.href = e.calUrl; cal.style.display = "inline-block"; } else { cal.style.display = "none"; }
@@ -469,7 +477,7 @@ function handoffText(c){
     [c.gyoshu, c.yakushoku, c.nenrei, c.area].filter(String).join("・"),
     "連絡先: " + (c.contact || "（申込記録なし）"),
     "紹介者: " + (c.shokai || "-") + " ／ きっかけ: " + (c.kikkake || "-"),
-    "入会日: " + (c.statusAtStr || "-") + " ／ 担当: " + (c.tanto || "-"),
+    "入会日: " + (c.joinAtStr || c.statusAtStr || "-") + " ／ 担当: " + (c.tanto || "-"),
     "これまで: " + ((c.events && c.events.length) ? c.events.join("、") : "-"),
     "メモ: " + (c.memoFull || c.memo || "-")].filter(function(l){ return l && l !== ""; });
   return lines.join("\n");
@@ -1001,6 +1009,11 @@ function adminMemberMessage(){
 }
 
 // ---- KPI ----
+// 打率は分母（面談した人）が足りないうちは率を出さない。0%・100% と誤読させない
+function hitRateText(k){
+  if (!k || k.hitRate === null || k.hitRate === undefined) return "未観測（面談 " + (k && k.meetingsAll != null ? k.meetingsAll : 0) + "人。" + ((k && k.hitMinN) || 5) + "人から出します）";
+  return Math.round(k.hitRate * 100) + "%";
+}
 function renderKpi(st){
   var ph = $("print_head"); if (ph) ph.textContent = "沼津JC 会員拡大 状況レポート " + new Date().toLocaleDateString("ja-JP") + (st.kpi && st.kpi.target ? "（今年の入会目標 " + st.kpi.target + "人）" : "");
   var box = $("a_kpi"); if (!box) return; box.innerHTML = "";
@@ -1015,11 +1028,12 @@ function renderKpi(st){
   };
   if (k.target){
     box.appendChild(bar("🎯 " + (k.year || "今年") + "年の入会", k.joined, k.target));
-    box.appendChild(bar("🤝 " + (k.year || "今年") + "年の面談", k.meetings, k.meetNeed));
-    box.appendChild(bar("📋 候補者（進行中）", k.candidates, k.listNeed));
+    box.appendChild(bar("🤝 " + (k.year || "今年") + "年の面談" + (k.hitProvisional ? "（必要数は目安）" : ""), k.meetings, k.meetNeed));
+    box.appendChild(bar("📋 候補者（進行中・必要数は目安）", k.candidates, k.listNeed));
     if (k.provisional) box.appendChild(el("div", "hint", "👥 未入会者の友だち " + (k.friends === null ? "-" : k.friends) + "人。必要な友だち数は、面談の実績が3件たまってから出します（いまは面談化率が既定値のため）"));
     else box.appendChild(bar("👥 未入会者の友だち", k.friends === null ? 0 : k.friends, k.friendNeed));
-    box.appendChild(el("div", "hint", (k.provisional ? "暫定: " : "") + "面談化率 " + Math.round(k.meetRate * 100) + "%・打率（面談→入会） " + Math.round(k.hitRate * 100) + "%" + (k.provisional ? "（既定値。実績で自動更新）" : "")));
+    box.appendChild(el("div", "hint", "面談化率 " + Math.round(k.meetRate * 100) + "%" + (k.provisional ? "（既定値。実績で自動更新）" : "") + "・打率（面談→入会） " + hitRateText(k)));
+    if (k.hitProvisional) box.appendChild(el("div", "hint", "必要な面談数は全国の経験則（面談6人に1人が入会）による目安です。面談した人が " + (k.hitMinN || 5) + "人になると、実測の打率で計算し直します"));
   } else {
     box.appendChild(el("div", "hint", "目標が未設定です。理事会で決まるまで仮の値でも動きます"));
   }
@@ -1029,7 +1043,7 @@ function renderKpi(st){
   if (!(k.ranking || []).length) box.appendChild(el("div", "hint", "まだありません（申込の「ご紹介者」欄から集計）"));
   (k.ranking || []).slice(0, 3).forEach(function(r, i){ box.appendChild(el("div", "", (i + 1) + ". " + r.name + " " + r.count + "／" + r.meet + "／" + r.joined)); });
   var more = document.createElement("details"); var sm = document.createElement("summary"); sm.textContent = "詳しく見る（ファネル・きっかけ別・QR別・有料化の目安）"; sm.style.cssText = "color:var(--navy);padding:8px 0;cursor:pointer"; more.appendChild(sm);
-  var fun = [["QR読み取り", k.reads, ""], ["未入会者の友だち", k.friends === null ? "-" : k.friends, ""], ["申込（人）", k.applied, pct(k.applied, k.friends)], ["参加", k.attended, pct(k.attended, k.applied)], ["入会希望", k.nyukai, ""], ["面談以上", k.meetingsAll != null ? k.meetingsAll : k.meetings, ""], ["入会", k.joinedAll != null ? k.joinedAll : k.joined, pct(k.joinedAll != null ? k.joinedAll : k.joined, k.meetingsAll != null ? k.meetingsAll : k.meetings)]];
+  var fun = [["QR読み取り", k.reads, ""], ["未入会者の友だち", k.friends === null ? "-" : k.friends, ""], ["申込（人）", k.applied, pct(k.applied, k.friends)], ["参加", k.attended, pct(k.attended, k.applied)], ["入会希望", k.nyukai, ""], ["面談した人（辞退した人も含む）", k.meetingsAll != null ? k.meetingsAll : k.meetings, ""], ["入会", k.joinedAll != null ? k.joinedAll : k.joined, hitRateText(k)]];
   more.appendChild(el("div", "t", "🔻 ファネル（累計）"));
   fun.forEach(function(f){ more.appendChild(el("div", "", "・" + f[0] + ": " + f[1] + (f[2] ? "（" + f[2] + "）" : ""))); });
   if ((k.ranking || []).length > 3){ more.appendChild(el("div", "t", "🏅 紹介実績（4位以下）")); (k.ranking || []).slice(3).forEach(function(r, i){ more.appendChild(el("div", "", (i + 4) + ". " + r.name + " " + r.count + "／" + r.meet + "／" + r.joined)); }); }
@@ -1312,6 +1326,14 @@ function renderAdmin(st){
   if (cur) s.value = cur;
   fillSelect("m_kikkake", st.keiroList || [], "");
   fillSelect("n_gyoshu", st.gyoshuList || [], ""); fillSelect("n_kikkake", st.keiroList || [], "");
+  // 送信に失敗した宛先が残っていれば、失敗分だけ送り直せるようにする
+  var rb = $("ops_resend"), rn = $("ops_resend_note");
+  if (rb && rn){
+    if (st.resend && st.resend.n){
+      rb.style.display = "inline-block"; rn.style.display = "block";
+      rn.textContent = "⚠️ " + st.resend.at + " の「" + st.resend.label + "」で " + st.resend.n + "名に届いていません。「失敗分を再送」で同じ本文をその人たちにだけ送り直せます";
+    } else { rb.style.display = "none"; rn.style.display = "none"; }
+  }
   fillDatalist(st.memberNames);
   var lines = [];
   var q = st.quota || {};
@@ -1430,12 +1452,16 @@ function adminAddApply(){
   var n = $("a_ev").value;
   if (!n){ alert("先にイベントを選んでください"); return; }
   var d = { name: $("m_name").value.trim(), company: $("m_company").value, contact: $("m_contact").value,
-            dohan: $("m_dohan").value, dohanCount: $("m_dohan_count").value, kikkake: $("m_kikkake").value, shokai: $("m_shokai").value, memo: $("m_memo").value };
+            dohan: $("m_dohan").value, dohanCount: $("m_dohan_count").value, kikkake: $("m_kikkake").value, shokai: $("m_shokai").value, memo: $("m_memo").value,
+            consent: $("m_consent").checked, consentBy: $("m_consent_by").value.trim(), force: $("m_force").checked };
   if (!d.name){ alert("お名前を入力してください"); return; }
+  if (!d.consent){ alert("本人に説明して口頭で同意を確認したチェックを入れてください"); $("m_consent").focus(); return; }
+  if (!d.consentBy){ alert("確認した委員のお名前を入れてください"); $("m_consent_by").focus(); return; }
   say("追加中…");
   api("liff_admin_add_apply", { ev: n, data: d }).then(function(st){
     ["m_name","m_company","m_contact","m_dohan","m_shokai","m_memo"].forEach(function(id){ $(id).value = ""; });
-    $("m_kikkake").value = "";
+    $("m_kikkake").value = ""; $("m_dohan_count").value = "0";
+    $("m_consent").checked = false; $("m_force").checked = false;
     renderAdmin(st);
   }).catch(function(e){ say("エラー: " + e.message); });
 }
