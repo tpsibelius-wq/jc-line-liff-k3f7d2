@@ -18,19 +18,22 @@ function showDbg(extra){ var d = $("dbg"); if (!d || !/[?&]dbg=1/.test(location.
 window.onerror = function(m, src, line){ say("エラー: " + m + " (line " + line + ")"); };
 window.addEventListener("unhandledrejection", function(ev){ say("Promiseエラー: " + (ev.reason && ev.reason.message ? ev.reason.message : ev.reason)); });
 
+// 利用者の書き込み（Worker が即時に受け付け、裏で GAS へ渡す）。二重実行防止の合言葉もこの一覧で付ける
+var USER_WRITES = ["liff_apply", "liff_cancel", "liff_survey", "liff_member_suggest"];
+
 function api(action, payload){
   return READY.then(function(){
   var body = Object.assign({ action: action, token: TOKEN }, payload || {});
   // 二重実行防止の合言葉（Worker 経由でも GAS 直接でも同じ値。サーバーが6時間おぼえる）
-  var isWrite = action === "liff_apply" || action === "liff_cancel" || action === "liff_survey" || action === "liff_member_suggest" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap");
+  var isWrite = USER_WRITES.indexOf(action) >= 0 || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap");
   if (isWrite) body.idem = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   var send = function(url){
     return fetch(url, { method: "POST", body: JSON.stringify(body) })
       .catch(function(){ throw new Error("通信に失敗しました。電波の良い場所でもう一度お試しください"); })
       .then(function(r){ return r.json().catch(function(){ throw new Error("サーバーの応答が読めませんでした。少し待ってからもう一度お試しください"); }); });
   };
-  // 申込・キャンセル・管理操作はWorkerが即時に受け付け、裏でGASへ渡す（配信などの結果はトークに届く）。Workerが使えないときはGASへ直接
-  var viaWorker = !!WORKER && (action === "liff_apply" || action === "liff_cancel" || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap" && action !== "liff_admin_ops" && action !== "liff_admin_delete_event")); // 運用と削除は GAS に直接
+  // 利用者の書き込みと管理操作はWorkerが即時に受け付け、裏でGASへ渡す（配信などの結果はトークに届く）。Workerが使えないときはGASへ直接
+  var viaWorker = !!WORKER && (USER_WRITES.indexOf(action) >= 0 || (action.indexOf("liff_admin_") === 0 && action !== "liff_admin_bootstrap" && action !== "liff_admin_ops" && action !== "liff_admin_delete_event")); // 運用と削除は GAS に直接
   var p = viaWorker
     ? send(WORKER).then(function(j){ if (j && j.error && /no snapshot|worker/.test(j.error)) throw new Error("worker"); return j; }).catch(function(){ return send(API); })
     : send(API);
@@ -456,7 +459,11 @@ function sendSurvey(){
   var d = { score: $("sv_score").value, good: $("sv_good").value.trim(), bad: $("sv_bad").value.trim() };
   if (!d.score){ alert("満足度を選んでください"); return; }
   $("sv_send").disabled = true; say("送信中…");
-  api("liff_survey", { data: d }).then(function(st){ $("survey").style.display = "none"; render(st); say(st.message || "ありがとうございました"); })
+  api("liff_survey", { data: d }).then(function(st){
+    $("survey").style.display = "none"; render(st);
+    // Worker が受け付けた分（pending）は、台帳への記録がこのあと。GAS 直接のときは GAS の文面をそのまま出す
+    say(st.surveyDone && st.surveyDone.pending ? "ありがとうございました。回答を受け付けました" : (st.message || "ありがとうございました"));
+  })
     .catch(function(e){ $("sv_send").disabled = false; say("エラー: " + e.message); });
 }
 
@@ -467,7 +474,9 @@ function sendSuggest(){
   $("sg_send").disabled = true; say("送信中…");
   api("liff_member_suggest", { data: d }).then(function(st){
     ["sg_name", "sg_company", "sg_relation", "sg_note"].forEach(function(id){ $(id).value = ""; });
-    $("sg_send").disabled = false; render(st); say(st.message || "登録しました");
+    $("sg_send").disabled = false; render(st);
+    // Worker が受け付けた分（pending）は、候補者リストへの登録と委員への通知がこのあと（紹介した人の一覧に出るのも数秒後）
+    say(st.suggestDone && st.suggestDone.pending ? "受け付けました。候補者一覧に数秒で載ります" : (st.message || "登録しました"));
   }).catch(function(e){ $("sg_send").disabled = false; say("エラー: " + e.message); });
 }
 
