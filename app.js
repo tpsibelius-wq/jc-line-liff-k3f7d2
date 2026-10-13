@@ -555,7 +555,7 @@ function showEventQr(){
       if (!src) return;
       var w = openPrintWindow("<!doctype html><html lang='ja'><head><meta charset='utf-8'><title>" + escHtml(n) + "</title></head><body style='text-align:center;font-family:sans-serif;padding:40px'>"
         + "<div style='margin-bottom:14px'><img src='" + new URL("assets/logo@2x.png", location.href).href + "' style='height:40px'></div><h1 style='font-size:28px;margin:0 0 8px'>" + escHtml(n) + "</h1><p style='font-size:18px;margin:0 0 24px'>LINEで読み取って参加申込</p><img src='" + src + "' style='width:80mm;height:80mm'>"
-        + "<p style='color:#555;margin-top:24px'>沼津青年会議所 会員拡大委員会</p></body></html>");
+        + "<p style='color:#555;margin-top:24px'>沼津青年会議所 組織拡大委員会</p></body></html>");
       if (w) setTimeout(function(){ try { w.print(); } catch (e) {} }, 400);
     };
     box.appendChild(pb);
